@@ -1,0 +1,33 @@
+# Bài học từ Luna cũ: KHÔNG chặn cả thư mục data/.
+# Chặn theo LOẠI và KÍCH THƯỚC, để file text nhỏ vẫn lên được git.
+
+# Corpus lớn và tensor nhị phân
+*.jsonl
+*.jsonl.gz
+*.arrow
+*.bin
+*.pt
+*.pth
+*.safetensors
+*.npy
+*.gz
+*.zst
+
+# Checkpoint (chỉ chặn thư mục checkpoint, không chặn artifacts/)
+artifacts/checkpoints/
+
+# Môi trường và rác build
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Ngoại lệ: các thứ NHỎ và QUÝ phải được commit
+!tests/fixtures/**
+!artifacts/tokenizer/*.json
+!data/**/README.md
+
+# Tokenizer smoke là sản phẩm tạm, không phải artifact
+artifacts/tokenizer/smoke_bpe.json

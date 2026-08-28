@@ -1,0 +1,9 @@
+# Chặng 1 - tokenizer. Cố ý giữ mỏng: chưa cài torch ở bước này.
+tokenizers>=0.20,<1.0
+datasets>=2.19
+tqdm>=4.66
+
+# Công cụ phát triển
+ruff>=0.6
+black>=24.8
+pytest>=8.3

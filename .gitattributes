@@ -1,0 +1,10 @@
+# Repo này được viết trên Windows nhưng CI chạy Linux. Ép LF trong repo để diff không
+# biến thành "đổi toàn bộ file" mỗi lần đổi máy. Working copy trên Windows vẫn CRLF.
+* text=auto eol=lf
+
+# Tokenizer là JSON một dòng rất dài — đánh dấu để GitHub không tính vào thống kê ngôn ngữ
+# và không cố hiển thị diff.
+artifacts/tokenizer/*.json linguist-generated=true -diff
+
+*.png binary
+*.jpg binary
