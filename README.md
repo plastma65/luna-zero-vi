@@ -101,7 +101,7 @@ và thứ cấm chặn — nên một lần sửa `.gitignore` làm rơi mất d
 | Nguồn | Cỡ | Gate |
 |---|---|---|
 | `wikimedia/wikipedia` `20231101.vi` | ~1,5GB | không |
-| `uonlp/CulturaX` subset `vi` | 55B token | **có** — phải đồng ý điều khoản + `huggingface-cli login` |
+| `uonlp/CulturaX` subset `vi` | 55B token | **có** — đồng ý điều khoản trên trang dataset + `hf auth login` |
 | `oscar-corpus/OSCAR-2301` vi | 68GB | có |
 | NewsCorpus (binhvq) | 53GB | không |
 

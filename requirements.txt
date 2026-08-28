@@ -1,9 +1,15 @@
-# Chặng 1 - tokenizer. Cố ý giữ mỏng: chưa cài torch ở bước này.
+# Chang 1 - tokenizer. Co y giu mong: chua cai torch o buoc nay.
+#
+# LUU Y: file nay phai la ASCII thuan. pip doc requirements.txt bang encoding
+# mac dinh cua he thong (cp1252 tren Windows), khong phai UTF-8, nen mot dau
+# tieng Viet trong comment lam pip chet voi UnicodeDecodeError.
+# Giai thich day du bang tieng Viet nam trong README.md va CLAUDE.md.
 tokenizers>=0.20,<1.0
 datasets>=2.19
 tqdm>=4.66
+huggingface_hub>=0.24
 
-# Công cụ phát triển
+# Cong cu phat trien
 ruff>=0.6
 black>=24.8
 pytest>=8.3
