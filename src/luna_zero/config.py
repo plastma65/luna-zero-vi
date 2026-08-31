@@ -89,11 +89,26 @@ class TrainConfig:
     # Bài học từ Luna cũ: save_strategy="epoch" không giới hạn từng ngốn 1,4GB đĩa.
     # Luôn có trần số checkpoint giữ lại.
     max_checkpoints_keep: int = 3
-    # Lưu mỗi 200 bước ~ 36 phút công sức. Mất tối đa chừng đó khi cúp điện.
-    # Xuống 50 thì I/O (1,3GB/lần ghi) bắt đầu ăn vào thời gian train.
-    save_every_steps: int = 200
+    # Lưu mỗi 100 bước ~ 18 phút công sức. Máy thường chỉ chạy được 1-2 tiếng mỗi
+    # phiên, nên mất 36 phút vì cúp điện là mất một phần đáng kể của cả phiên.
+    # Mỗi lần ghi 1,3GB mất vài giây trên SSD -> phụ trội dưới 0,5% thời gian train.
+    save_every_steps: int = 100
     # Tốc độ đo thực tế trên RTX 3060 12GB, dùng để ước lượng thời gian chạy.
     tokens_per_second_3060: int = 6_000
+
+
+def chon_thiet_bi(uu_tien: str | None = None) -> str:
+    """Chọn thiết bị tính toán. ĐÂY LÀ CHỖ DUY NHẤT được phép nhắc tới "cuda".
+
+    Train thì bắt buộc GPU (CPU chậm hơn 50-100 lần), nhưng model phải CHẠY được trên
+    máy không GPU — đó là điểm Luna Zero hơn hẳn Luna cũ. Viết cứng .cuda() rải rác
+    trong code là cách chắc chắn nhất để đánh mất điều đó mà không ai nhận ra.
+    """
+    if uu_tien:
+        return uu_tien
+    import torch
+
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 TOKENIZER = TokenizerConfig()

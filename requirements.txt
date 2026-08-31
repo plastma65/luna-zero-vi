@@ -10,6 +10,12 @@ tqdm>=4.66
 numpy>=1.26
 huggingface_hub>=0.24
 
+# torch KHONG nam o day: no gan voi phan cung.
+#   May co GPU  : pip install torch --index-url https://download.pytorch.org/whl/cu124
+#   May khong GPU: pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Dung `pip install torch` tran tren Windows se lay ban CPU-only, chay duoc nhung
+# khong dung toi GPU va cham hon khoang 50 lan.
+
 # Cong cu phat trien
 ruff>=0.6
 black>=24.8

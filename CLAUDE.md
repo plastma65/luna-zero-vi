@@ -88,3 +88,30 @@ Máy không chạy liên tục 4 ngày được, nên vòng lặp train ở Ch�
 4. Xoay vòng theo `TRAIN.max_checkpoints_keep`; `best.pt` không bị xoay vòng đụng tới.
 
 Ctrl+C dùng `NgatMemMai`: lần một đặt cờ để vòng lặp lưu xong rồi thoát, lần hai thoát ngay.
+
+## Họ lỗi nguy hiểm nhất của dự án này: PHÉP ĐO TỰ LỪA
+
+Đã xuất hiện **bốn lần** dưới bốn lớp vỏ khác nhau. Mỗi lần đều cho con số ĐẸP HƠN sự
+thật, và không lần nào ném lỗi hay cảnh báo. Đây không phải bốn sự cố rời rạc mà là một
+họ lỗi, nên khi thêm bất kỳ phép đo mới nào phải hỏi trước: *dữ liệu đo có dính vào thứ
+đang được đo không?*
+
+1. **Luna cũ**: 8/10 câu eval nằm nguyên văn trong data train -> eval đo trí nhớ, và
+   bỏ lọt một bước lùi thật.
+2. **`do_nen.py`**: bỏ qua 500MB theo hằng số mặc định trong khi tokenizer đã train trên
+   2GB -> 1,5GB dữ liệu train lọt vào mẫu đo. Vá bằng `luna_zero_bpe.meta.json` ghi
+   `train_bytes`, và in CẢNH BÁO khi thiếu metadata thay vì im lặng dùng mặc định.
+3. **`test_loss_ban_dau_bang_ln_vocab`**: truyền `targets=x`, tức bắt model dự đoán chính
+   token đang nhìn. Embedding buộc chung làm `logits = h @ E^T`, tích vô hướng của một
+   embedding với chính nó lớn hơn với embedding khác, nên loss ra 3,87 thay vì 4,57.
+   Test sai, model đúng.
+4. **`train.bin` và tokenizer lệch nhau**: `meta.json` chỉ ghi `vocab_size`, mà hai
+   tokenizer khác nhau vẫn cùng vocab 32.000. Train sẽ chạy đủ 4 ngày với loss đẹp rồi
+   sinh ra chữ rác. Vá bằng vân tay băm nguyên file tokenizer + `kiem_tokenizer_khop()`
+   gọi ngay lúc khởi động vòng lặp train.
+
+**Quy tắc rút ra**: mọi phép đo phải nói rõ NÓ ĐO TRÊN DỮ LIỆU NÀO và chứng minh dữ liệu
+đó tách khỏi thứ đang được đo. Nếu không chứng minh được thì phép đo đó chưa dùng được.
+
+**Hệ quả cho lúc train thật**: loss khởi đầu phải quanh `ln(32000) = 10,37`. Thấp hơn rõ
+rệt KHÔNG phải tin vui — hãy loại trừ nhãn trùng đầu vào và rò rỉ nhân quả trước đã.

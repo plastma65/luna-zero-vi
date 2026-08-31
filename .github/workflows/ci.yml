@@ -15,6 +15,10 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt
+      # torch không nằm trong requirements.txt vì nó gắn với phần cứng: máy Lozens cần
+      # bản CUDA (~2,5GB), CI chỉ cần bản CPU (~200MB). Cài riêng ở đây, và chính vì CI
+      # không có GPU nên nó là lưới chặn thật cho việc viết cứng .cuda().
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
       # Đúng ba lệnh của quy tắc làm việc số 4, không thêm không bớt.
       - run: ruff check .
       - run: black --check .

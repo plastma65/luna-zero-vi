@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from luna_zero.checkpoint import TrainState
-from luna_zero.config import MODEL, TRAIN
-from luna_zero.model import estimate_num_params, estimate_vram_gb
-from luna_zero.train import con_lai, make_plan
+# model.py import torch ở mức module. Bỏ qua cả file khi máy chưa cài torch, thay vì
+# làm hỏng việc thu thập test và kéo sập toàn bộ suite.
+pytest.importorskip("torch", reason="model.py cần torch")
+
+from luna_zero.checkpoint import TrainState  # noqa: E402
+from luna_zero.config import MODEL, TRAIN  # noqa: E402
+from luna_zero.model import estimate_num_params, estimate_vram_gb  # noqa: E402
+from luna_zero.train import con_lai, make_plan  # noqa: E402
 
 
 def test_so_tham_so_quanh_110m() -> None:
