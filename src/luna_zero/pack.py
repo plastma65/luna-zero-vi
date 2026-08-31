@@ -20,6 +20,44 @@ from luna_zero import config
 from luna_zero.tokenizer import LunaTokenizer
 
 
+def tokenizer_fingerprint(path: Path) -> str:
+    """Vân tay của chính FILE tokenizer, không phải của các tham số nó khai báo.
+
+    vocab_size không đủ để nhận dạng: hai tokenizer train trên hai corpus khác nhau vẫn
+    cùng vocab 32.000 nhưng bảng merge khác hẳn, nên cùng một id trỏ vào hai token khác
+    nhau. Băm nguyên file là cách duy nhất phân biệt được.
+    """
+    return hashlib.blake2b(path.read_bytes(), digest_size=16).hexdigest()
+
+
+def kiem_tokenizer_khop(out_dir: Path, tokenizer_path: Path) -> None:
+    """Chặn việc train trên .bin sinh bởi tokenizer KHÁC tokenizer đang dùng.
+
+    Đây là hỏng im lặng đắt nhất của cả dự án: id trong train.bin trỏ vào bảng merge cũ,
+    loss vẫn giảm bình thường, train vẫn chạy đủ 4 ngày, và chỉ khi sinh văn bản mới lộ
+    ra toàn chữ rác. Ném lỗi ngay ở bước khởi động thay vì để phát hiện sau 4 ngày.
+    """
+    meta_file = out_dir / "meta.json"
+    if not meta_file.exists():
+        raise FileNotFoundError(f"Thiếu {meta_file}. Chạy scripts/dong_goi.py trước.")
+    meta = json.loads(meta_file.read_text(encoding="utf-8"))
+    da_ghi = meta.get("tokenizer_fingerprint")
+    if da_ghi is None:
+        raise ValueError(
+            f"{meta_file} không ghi vân tay tokenizer (đóng gói bằng bản cũ). "
+            "Chạy lại scripts/dong_goi.py để sinh meta.json đầy đủ."
+        )
+    hien_tai = tokenizer_fingerprint(tokenizer_path)
+    if da_ghi != hien_tai:
+        raise ValueError(
+            "TOKENIZER KHÔNG KHỚP DỮ LIỆU ĐÃ ĐÓNG GÓI.\n"
+            f"  {out_dir.name}/meta.json : {da_ghi}\n"
+            f"  {tokenizer_path.name}    : {hien_tai}\n"
+            "Token id trong .bin trỏ vào bảng merge khác. Train tiếp sẽ cho model "
+            "sinh ra chữ rác mà loss vẫn đẹp. Chạy lại scripts/dong_goi.py."
+        )
+
+
 def doc_hash(text: str) -> str:
     """Vân tay của một document, dùng để phát hiện trùng nguyên văn.
 
@@ -113,6 +151,7 @@ def pack_documents(
     tokenizer: LunaTokenizer,
     docs: Iterable[str],
     out_dir: Path,
+    tokenizer_path: Path | None = None,
     val_ratio: float = config.DATA.val_ratio,
     tien_do_moi: int = config.DATA.flush_every_docs,
     im_lang: bool = False,
@@ -160,6 +199,9 @@ def pack_documents(
     stats.n_val_tokens = writers["val"].n_tokens
     meta = {
         "vocab_size": tokenizer.vocab_size,
+        "tokenizer_fingerprint": (
+            tokenizer_fingerprint(tokenizer_path) if tokenizer_path else None
+        ),
         "dtype": config.DATA.token_dtype,
         "val_ratio": val_ratio,
         **stats.to_dict(),

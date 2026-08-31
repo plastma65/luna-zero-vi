@@ -169,3 +169,71 @@ def test_im_lang_khi_duoc_yeu_cau(tiny_tokenizer, tmp_path: Path, capsys) -> Non
     docs = [f"Câu {i}." for i in range(25)]
     pack_documents(tiny_tokenizer, docs, tmp_path, tien_do_moi=10, im_lang=True)
     assert capsys.readouterr().out == ""
+
+
+# --- vân tay tokenizer ------------------------------------------------------
+def test_hai_tokenizer_cung_vocab_van_khac_van_tay(tmp_path: Path, sample_texts) -> None:
+    """Điểm mấu chốt: vocab_size KHÔNG đủ để nhận dạng tokenizer."""
+    from luna_zero.pack import tokenizer_fingerprint
+    from luna_zero.tokenizer import train_tokenizer
+
+    a, b = tmp_path / "a.json", tmp_path / "b.json"
+    train_tokenizer(sample_texts, output_path=a, vocab_size=600, min_frequency=1)
+    train_tokenizer(sample_texts[:10], output_path=b, vocab_size=600, min_frequency=1)
+    assert tokenizer_fingerprint(a) != tokenizer_fingerprint(b)
+
+
+def test_meta_ghi_van_tay_tokenizer(tiny_tokenizer, tmp_path: Path, sample_texts) -> None:
+    from luna_zero.pack import tokenizer_fingerprint
+    from luna_zero.tokenizer import train_tokenizer
+
+    tok_path = tmp_path / "t.json"
+    train_tokenizer(sample_texts, output_path=tok_path, vocab_size=600, min_frequency=1)
+    out = tmp_path / "pack"
+    pack_documents(tiny_tokenizer, ["một câu"], out, tokenizer_path=tok_path)
+    meta = json.loads((out / "meta.json").read_text(encoding="utf-8"))
+    assert meta["tokenizer_fingerprint"] == tokenizer_fingerprint(tok_path)
+
+
+def test_tokenizer_khop_thi_khong_ném_loi(tiny_tokenizer, tmp_path: Path, sample_texts) -> None:
+    from luna_zero.pack import kiem_tokenizer_khop
+    from luna_zero.tokenizer import train_tokenizer
+
+    tok_path = tmp_path / "t.json"
+    train_tokenizer(sample_texts, output_path=tok_path, vocab_size=600, min_frequency=1)
+    out = tmp_path / "pack"
+    pack_documents(tiny_tokenizer, ["một câu"], out, tokenizer_path=tok_path)
+    kiem_tokenizer_khop(out, tok_path)  # không được ném
+
+
+def test_tokenizer_khac_bi_chan(tiny_tokenizer, tmp_path: Path, sample_texts) -> None:
+    """Phép đo chiều ngược đắt giá nhất: train trên .bin của tokenizer khác.
+
+    Không chặn ở đây thì lỗi chỉ lộ sau 4 ngày train, khi model sinh ra chữ rác.
+    """
+    from luna_zero.pack import kiem_tokenizer_khop
+    from luna_zero.tokenizer import train_tokenizer
+
+    cu, moi = tmp_path / "cu.json", tmp_path / "moi.json"
+    train_tokenizer(sample_texts, output_path=cu, vocab_size=600, min_frequency=1)
+    train_tokenizer(sample_texts[:10], output_path=moi, vocab_size=600, min_frequency=1)
+    out = tmp_path / "pack"
+    pack_documents(tiny_tokenizer, ["một câu"], out, tokenizer_path=cu)
+    with pytest.raises(ValueError, match="KHÔNG KHỚP"):
+        kiem_tokenizer_khop(out, moi)
+
+
+def test_meta_cu_khong_co_van_tay_bi_bao_loi_ro_rang(tiny_tokenizer, tmp_path: Path) -> None:
+    from luna_zero.pack import kiem_tokenizer_khop
+
+    out = tmp_path / "pack"
+    pack_documents(tiny_tokenizer, ["một câu"], out)  # không truyền tokenizer_path
+    with pytest.raises(ValueError, match="không ghi vân tay"):
+        kiem_tokenizer_khop(out, tmp_path / "bat-ky.json")
+
+
+def test_thieu_meta_bao_loi_ro_rang(tmp_path: Path) -> None:
+    from luna_zero.pack import kiem_tokenizer_khop
+
+    with pytest.raises(FileNotFoundError, match="dong_goi"):
+        kiem_tokenizer_khop(tmp_path, tmp_path / "t.json")

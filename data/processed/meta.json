@@ -7,5 +7,6 @@
   "n_train_tokens": 2262348253,
   "n_val_tokens": 2230918,
   "n_docs_giu": 2414007,
-  "n_tokens": 2264579171
+  "n_tokens": 2264579171,
+  "tokenizer_fingerprint": "67da90d55af56deab76e9d6193b36fd4"
 }

@@ -63,6 +63,17 @@ tests/                round-trip, nén, ô nhiễm, hằng số, VRAM, smoke imp
   normalizer vào tokenizer thì tokenizer hết lossless và test round-trip mất giá trị.
 * **`add_prefix_space=False`.** Bật lên là hỏng round-trip ngay.
 * **Không có token UNK trong `SPECIAL_TOKENS`.** Có UNK chỉ tạo chỗ mất dữ liệu âm thầm.
+* **KHÔNG viết cứng `.cuda()` hay `device="cuda"` ở bất kỳ đâu.** Chọn thiết bị qua một
+  chỗ duy nhất (`config.chon_thiet_bi()`), mặc định tự dò, ghi đè được bằng `--device`.
+
+  Lý do: train thì bắt buộc CUDA (CPU chậm hơn 50-100 lần, 4 ngày thành 6-12 tháng),
+  nhưng **chạy model thì phải sống được trên máy không GPU**. Đây là điểm Luna Zero hơn
+  hẳn Luna cũ: Qwen3-4B cần ~8GB trọng số và `bitsandbytes` vốn chỉ có nhân CUDA, nên
+  bỏ GPU ra là không nạp nổi. Luna Zero 110M chỉ 440MB fp32 (~110MB nếu int8), nằm gọn
+  trong RAM máy thường và không cần thư viện lượng tử hoá đặc biệt nào.
+
+  Có test bắt buộc model chạy được trên CPU, và test đó chạy trong CI GitHub — nơi
+  không có GPU — nên lỗi viết cứng cuda không thể lọt qua.
 
 ## Checkpoint và chạy tiếp (Chặng 1 đã dựng xong tầng này)
 
