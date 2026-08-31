@@ -59,6 +59,7 @@ def main() -> int:
         iter_corpus(args.corpus_dir, max_bytes=args.train_bytes),
         output_path=args.out,
         vocab_size=args.vocab_size,
+        train_bytes=args.train_bytes,
     )
     print(f"Xong sau {time.perf_counter() - t0:.1f}s -> {args.out}")
     print(f"Vocab thực tế: {tok.get_vocab_size():,}")

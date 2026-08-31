@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,13 +30,40 @@ def build_empty_tokenizer() -> Tokenizer:
     return tok
 
 
+def meta_path(tokenizer_path: Path) -> Path:
+    return tokenizer_path.with_suffix(".meta.json")
+
+
+def doc_train_bytes(tokenizer_path: Path) -> int:
+    """Số byte corpus đã dùng để train tokenizer này, đọc từ file metadata bên cạnh.
+
+    Cần cho việc đo nén: phép đo phải bỏ qua ĐÚNG phần corpus tokenizer đã thấy.
+    Không có metadata thì lùi về giá trị mặc định trong config — có thể sai, nên
+    `do_nen.py` nói rõ nó đang dùng nguồn nào.
+    """
+    path = meta_path(tokenizer_path)
+    if not path.exists():
+        return config.TOKENIZER.train_bytes
+    try:
+        return int(json.loads(path.read_text(encoding="utf-8"))["train_bytes"])
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return config.TOKENIZER.train_bytes
+
+
 def train_tokenizer(
     corpus: Iterable[str],
     output_path: Path,
     vocab_size: int = config.TOKENIZER.vocab_size,
     min_frequency: int = config.TOKENIZER.min_frequency,
+    train_bytes: int | None = None,
 ) -> Tokenizer:
-    """Train BPE trên một iterable các document rồi lưu ra `output_path`."""
+    """Train BPE trên một iterable các document rồi lưu ra `output_path`.
+
+    `train_bytes` được ghi vào file metadata bên cạnh. Bài học Luna cũ: bộ eval trùng
+    dữ liệu train thì phép đo chỉ đo trí nhớ. Nếu ai train tokenizer trên 2GB nhưng
+    phép đo vẫn chỉ bỏ qua 500MB theo hằng số mặc định, thì 1,5GB dữ liệu train lọt
+    vào mẫu đo và tỷ lệ nén bị thổi lên — im lặng, không có gì báo.
+    """
     tok = build_empty_tokenizer()
     trainer = trainers.BpeTrainer(
         vocab_size=vocab_size,
@@ -49,6 +77,17 @@ def train_tokenizer(
     tok.train_from_iterator(corpus, trainer=trainer)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tok.save(str(output_path))
+    meta_path(output_path).write_text(
+        json.dumps(
+            {
+                "vocab_size": vocab_size,
+                "min_frequency": min_frequency,
+                "train_bytes": train_bytes if train_bytes is not None else 0,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     return tok
 
 

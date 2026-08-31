@@ -1,0 +1,166 @@
+"""Khử trùng lặp và đóng gói corpus thành mảng token nhị phân.
+
+Kết quả là hai file phẳng `train.bin` / `val.bin` chứa token uint16 nối đuôi nhau,
+kèm `meta.json`. Vòng lặp train sẽ memmap chúng và cắt cửa sổ block_size ở vị trí
+ngẫu nhiên — không cần nạp cả 4,4GB vào RAM.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Iterable, Iterator
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+import numpy as np
+
+from luna_zero import config
+from luna_zero.tokenizer import LunaTokenizer
+
+
+def doc_hash(text: str) -> str:
+    """Vân tay của một document, dùng để phát hiện trùng nguyên văn.
+
+    Băm trên chuỗi ĐÃ chuẩn hoá NFC (data.normalize_text đã chạy ở bước tải), nên hai
+    document chỉ khác nhau ở cách mã hoá dấu vẫn cho cùng vân tay. Cắt 16 byte đầu:
+    với 2 triệu document, xác suất đụng độ ngẫu nhiên nhỏ hơn 10^-20.
+    """
+    return hashlib.blake2b(text.encode("utf-8"), digest_size=16).hexdigest()
+
+
+def chon_split(text: str, val_ratio: float = config.DATA.val_ratio) -> str:
+    """Quyết định document thuộc train hay val, TẤT ĐỊNH theo nội dung.
+
+    Bài học Luna cũ: eval trùng dữ liệu train thì phép đo chỉ đo trí nhớ. Chia theo
+    hash nội dung (không phải theo thứ tự hay số ngẫu nhiên) bảo đảm một document
+    luôn rơi vào cùng một phía, kể cả khi corpus được tải lại theo thứ tự khác hay
+    có thêm shard mới. Nhờ vậy tập val không bao giờ lẫn sang train giữa các lần chạy.
+    """
+    # 8 hex đầu -> số nguyên 32 bit, chia đều trong [0, 1).
+    diem = int(doc_hash(text)[:8], 16) / 0x1_0000_0000
+    return "val" if diem < val_ratio else "train"
+
+
+def loc_trung_lap(docs: Iterable[str]) -> Iterator[tuple[str, str]]:
+    """Sinh (text, split) cho các document chưa từng thấy. Giữ bản xuất hiện đầu tiên."""
+    da_thay: set[str] = set()
+    for text in docs:
+        h = doc_hash(text)
+        if h in da_thay:
+            continue
+        da_thay.add(h)
+        yield text, chon_split(text)
+
+
+@dataclass
+class PackStats:
+    n_docs_vao: int = 0
+    n_docs_trung: int = 0
+    n_train_tokens: int = 0
+    n_val_tokens: int = 0
+
+    @property
+    def n_docs_giu(self) -> int:
+        return self.n_docs_vao - self.n_docs_trung
+
+    @property
+    def n_tokens(self) -> int:
+        return self.n_train_tokens + self.n_val_tokens
+
+    def to_dict(self) -> dict[str, int]:
+        d = asdict(self)
+        d.update(n_docs_giu=self.n_docs_giu, n_tokens=self.n_tokens)
+        return d
+
+
+class _BinWriter:
+    """Ghi token ra file nhị phân theo lô, có kiểm tràn uint16."""
+
+    def __init__(self, path: Path, dtype: str = config.DATA.token_dtype) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._fh = path.open("wb")
+        self._dtype = np.dtype(dtype)
+        self._buf: list[int] = []
+        self.n_tokens = 0
+
+    def write(self, ids: list[int]) -> None:
+        self._buf.extend(ids)
+        self.n_tokens += len(ids)
+
+    def flush(self) -> None:
+        if not self._buf:
+            return
+        arr = np.asarray(self._buf, dtype=np.int64)
+        # Kiểm TRƯỚC khi ép kiểu. numpy ép xuống uint16 bằng cách lấy dư 65536 và
+        # KHÔNG báo lỗi, nên một token id vượt trần sẽ âm thầm biến thành token khác —
+        # dữ liệu hỏng mà loss vẫn giảm bình thường. Đây là lỗi phải chặn, không phải cảnh báo.
+        if arr.size and (arr.max() > config.DATA.max_token_id or arr.min() < 0):
+            raise ValueError(
+                f"token id ngoài khoảng uint16 (max={arr.max()}, min={arr.min()}). "
+                f"vocab_size={config.TOKENIZER.vocab_size} có vượt {config.DATA.max_token_id}?"
+            )
+        self._fh.write(arr.astype(self._dtype).tobytes())
+        self._buf.clear()
+
+    def close(self) -> None:
+        self.flush()
+        self._fh.close()
+
+
+def pack_documents(
+    tokenizer: LunaTokenizer,
+    docs: Iterable[str],
+    out_dir: Path,
+    val_ratio: float = config.DATA.val_ratio,
+    tien_do_moi: int = config.DATA.flush_every_docs,
+) -> PackStats:
+    """Khử trùng lặp, token hoá, ghi ra train.bin / val.bin / meta.json."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    writers = {
+        "train": _BinWriter(out_dir / "train.bin"),
+        "val": _BinWriter(out_dir / "val.bin"),
+    }
+    stats = PackStats()
+    da_thay: set[str] = set()
+    try:
+        for text in docs:
+            stats.n_docs_vao += 1
+            h = doc_hash(text)
+            if h in da_thay:
+                stats.n_docs_trung += 1
+                continue
+            da_thay.add(h)
+            split = chon_split(text, val_ratio)
+            writers[split].write(tokenizer.encode_document(text))
+            if stats.n_docs_vao % tien_do_moi == 0:
+                for w in writers.values():
+                    w.flush()
+    finally:
+        for w in writers.values():
+            w.close()
+
+    stats.n_train_tokens = writers["train"].n_tokens
+    stats.n_val_tokens = writers["val"].n_tokens
+    meta = {
+        "vocab_size": tokenizer.vocab_size,
+        "dtype": config.DATA.token_dtype,
+        "val_ratio": val_ratio,
+        **stats.to_dict(),
+    }
+    (out_dir / "meta.json").write_text(
+        json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    return stats
+
+
+def load_split(out_dir: Path, split: str) -> np.ndarray:
+    """Memmap một split. Chỉ đọc, không nạp cả file vào RAM.
+
+    np.memmap không mở được file 0 byte, mà file rỗng là trạng thái hợp lệ (val_ratio=0,
+    hoặc corpus quá nhỏ nên không document nào rơi vào val). Trả mảng rỗng thay vì nổ.
+    """
+    path = out_dir / f"{split}.bin"
+    if not path.exists() or path.stat().st_size == 0:
+        return np.empty(0, dtype=config.DATA.token_dtype)
+    return np.memmap(path, dtype=config.DATA.token_dtype, mode="r")

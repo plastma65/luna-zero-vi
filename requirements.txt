@@ -7,6 +7,7 @@
 tokenizers>=0.20,<1.0
 datasets>=2.19
 tqdm>=4.66
+numpy>=1.26
 huggingface_hub>=0.24
 
 # Cong cu phat trien

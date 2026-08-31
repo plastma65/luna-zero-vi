@@ -25,7 +25,9 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+# Mặc định bỏ qua test `slow` (quét toàn bộ corpus hàng GB). Chạy chúng trước mỗi
+# lần train thật bằng: pytest -m slow
+addopts = "-q -m 'not slow'"
 markers = [
-    "slow: test cần tokenizer thật đã train xong (bỏ qua nếu chưa có)",
+    "slow: test quét toàn bộ corpus, chạy bằng `pytest -m slow`",
 ]

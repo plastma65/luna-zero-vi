@@ -1,0 +1,5 @@
+{
+  "vocab_size": 32000,
+  "min_frequency": 2,
+  "train_bytes": 2147483648
+}

@@ -19,7 +19,9 @@ from luna_zero.data import iter_corpus  # noqa: E402
 from luna_zero.tokenizer import (  # noqa: E402
     LunaTokenizer,
     char_level_baseline,
+    doc_train_bytes,
     measure_compression,
+    meta_path,
 )
 
 
@@ -28,17 +30,33 @@ def main() -> int:
     parser.add_argument("--tokenizer", type=Path, default=config.TOKENIZER_PATH)
     parser.add_argument("--corpus-dir", type=Path, default=config.RAW_DIR)
     parser.add_argument("--sample-docs", type=int, default=5_000)
+    parser.add_argument(
+        "--skip-bytes",
+        type=int,
+        default=None,
+        help="bỏ qua N byte đầu corpus trước khi lấy mẫu. Mặc định đọc từ metadata "
+        "của tokenizer, tức đúng phần nó đã học.",
+    )
     args = parser.parse_args()
 
     tok = LunaTokenizer.load(args.tokenizer)
     # Bỏ qua đúng phần corpus đã dùng để train tokenizer rồi mới lấy mẫu.
     # Bài học Luna cũ: bộ eval trùng dữ liệu train thì phép đo chỉ đo trí nhớ.
-    # Vừa tránh ô nhiễm, vừa không phải nạp cả 6GB vào RAM để lấy đuôi.
+    # Vừa tránh ô nhiễm, vừa không phải nạp cả corpus vào RAM để lấy đuôi.
+    if args.skip_bytes is not None:
+        bo_qua_bytes, nguon = args.skip_bytes, "tham số --skip-bytes"
+    elif meta_path(args.tokenizer).exists():
+        bo_qua_bytes, nguon = doc_train_bytes(args.tokenizer), "metadata tokenizer"
+    else:
+        bo_qua_bytes = config.TOKENIZER.train_bytes
+        nguon = "config (CẢNH BÁO: không có metadata, có thể đo trúng dữ liệu train)"
+    print(f"Bỏ qua      : {bo_qua_bytes / 1024**2:,.0f} MB đầu corpus [{nguon}]")
+
     stream = iter_corpus(args.corpus_dir)
     skipped = 0
     for text in stream:
         skipped += len(text.encode("utf-8"))
-        if skipped >= config.TOKENIZER.train_bytes:
+        if skipped >= bo_qua_bytes:
             break
     docs = list(itertools.islice(stream, args.sample_docs))
     if not docs:

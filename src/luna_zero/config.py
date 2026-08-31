@@ -44,6 +44,23 @@ class TokenizerConfig:
     min_chars_per_token: float = 2.4
 
 
+# --- Dữ liệu đã đóng gói ---
+@dataclass(frozen=True)
+class DataConfig:
+    """Tham số cho bước khử trùng lặp và đóng gói token."""
+
+    # 0,1% của 2,2 tỷ token ~ 2,2 triệu token cho tập val. Thừa sức đo loss ổn định,
+    # mà vẫn không cắt mất phần đáng kể của dữ liệu train.
+    val_ratio: float = 0.001
+    # uint16 vì vocab 32.000 < 65.536. Dùng uint32 sẽ làm file .bin to gấp đôi
+    # (4,4GB -> 8,8GB) mà không mang thêm thông tin nào.
+    token_dtype: str = "uint16"
+    # Trần lý thuyết của uint16. `pack` phải kiểm chứ không được tin.
+    max_token_id: int = 65_535
+    # Ghi ra đĩa mỗi 50.000 document: đủ để I/O không vụn, đủ nhỏ để RAM không phình.
+    flush_every_docs: int = 50_000
+
+
 # --- Model -----------------------------------------------------------------
 @dataclass(frozen=True)
 class ModelConfig:
@@ -80,5 +97,6 @@ class TrainConfig:
 
 
 TOKENIZER = TokenizerConfig()
+DATA = DataConfig()
 MODEL = ModelConfig()
 TRAIN = TrainConfig()
