@@ -1,0 +1,11 @@
+{
+  "vocab_size": 32000,
+  "dtype": "uint16",
+  "val_ratio": 0.001,
+  "n_docs_vao": 2414008,
+  "n_docs_trung": 1,
+  "n_train_tokens": 2262348253,
+  "n_val_tokens": 2230918,
+  "n_docs_giu": 2414007,
+  "n_tokens": 2264579171
+}

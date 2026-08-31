@@ -148,3 +148,24 @@ def test_pack_stats_tinh_dung() -> None:
     s = PackStats(n_docs_vao=10, n_docs_trung=3, n_train_tokens=100, n_val_tokens=5)
     assert s.n_docs_giu == 7
     assert s.n_tokens == 105
+
+
+# --- tiến trình -------------------------------------------------------------
+def test_co_in_tien_do_khi_chay_lau(tiny_tokenizer, tmp_path: Path, capsys) -> None:
+    """Phép đo chiều ngược: pack KHÔNG được im lặng suốt một công việc dài.
+
+    Lỗi này đã xảy ra thật — bản đầu chạy 30 phút không in gì, và người dùng tưởng
+    nó treo. Một tiến trình câm không phân biệt được với một tiến trình chết.
+    """
+    docs = [f"Câu số {i} khác nhau hoàn toàn." for i in range(25)]
+    pack_documents(tiny_tokenizer, docs, tmp_path, tien_do_moi=10)
+    ra = capsys.readouterr().out
+    assert "doc" in ra and "token" in ra
+    # 25 doc, in mỗi 10 doc -> đúng 2 dòng tiến trình.
+    assert len([d for d in ra.splitlines() if "token/s" in d]) == 2
+
+
+def test_im_lang_khi_duoc_yeu_cau(tiny_tokenizer, tmp_path: Path, capsys) -> None:
+    docs = [f"Câu {i}." for i in range(25)]
+    pack_documents(tiny_tokenizer, docs, tmp_path, tien_do_moi=10, im_lang=True)
+    assert capsys.readouterr().out == ""

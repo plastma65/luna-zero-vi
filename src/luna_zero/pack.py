@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -114,8 +115,13 @@ def pack_documents(
     out_dir: Path,
     val_ratio: float = config.DATA.val_ratio,
     tien_do_moi: int = config.DATA.flush_every_docs,
+    im_lang: bool = False,
 ) -> PackStats:
-    """Khử trùng lặp, token hoá, ghi ra train.bin / val.bin / meta.json."""
+    """Khử trùng lặp, token hoá, ghi ra train.bin / val.bin / meta.json.
+
+    In tiến trình theo mặc định. Công việc này chạy nửa tiếng; một tiến trình im lặng
+    lâu đến vậy không phân biệt được với treo, và người chạy sẽ giết nhầm nó.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     writers = {
         "train": _BinWriter(out_dir / "train.bin"),
@@ -123,6 +129,7 @@ def pack_documents(
     }
     stats = PackStats()
     da_thay: set[str] = set()
+    t0 = time.perf_counter()
     try:
         for text in docs:
             stats.n_docs_vao += 1
@@ -136,6 +143,15 @@ def pack_documents(
             if stats.n_docs_vao % tien_do_moi == 0:
                 for w in writers.values():
                     w.flush()
+                if not im_lang:
+                    tok_da_ghi = writers["train"].n_tokens + writers["val"].n_tokens
+                    giay = time.perf_counter() - t0
+                    print(
+                        f"   {stats.n_docs_vao:>9,} doc | {tok_da_ghi / 1e6:>7.1f}M token"
+                        f" | trùng {stats.n_docs_trung:>7,}"
+                        f" | {tok_da_ghi / giay / 1e3:>5.0f}k token/s",
+                        flush=True,
+                    )
     finally:
         for w in writers.values():
             w.close()
