@@ -1,35 +1,35 @@
 # Luna Zero — bước 2,069 | val loss 3.6634
-# temp 0.9 top-p 0.92 top-k None phạt lặp 1.15
+# temp 0.9 top-p 0.92 top-k None phạt lặp 1.05
 
 ======================================================================
 "Hà Nội là"
 ----------------------------------------------------------------------
-Hà Nội là một trung tâm thương mại đô thị trọng điểm nằm tại hai trung tâm Thành Phố. Gần đây nhất, một số dự án lớn như: Xã hội, Công nghiệp. Căn hộ cao cấp Long Thành được kỳ vọng trở thành công với việc quảng bá nguồn quỹ đất cho các nhà đầu tư tại Hà Nội.
-Dự án Vinhomes Belbon City TP.HCM tọa lạc ngay khu biệt thự quốc tế Hà Nội trong xanh cho thuê trên trục đường Quốc Lộ
-Ngoài chủ đầu tư, xây dựng với 5-5ha thành viên cùng Tập đoàn Vingroup (tổ hợp) và KCN Nhơn Trạch trên
-[distinct-1 0.867 | distinct-2 0.981 | distinct-4 1.000 | chuỗi lặp dài nhất 1]
+Hà Nội là một cơ hội cho nền kinh tế Việt Nam, trong khi đó Trung Quốc cũng đã mở cửa thảo luận về những quan điểm giữa Trung Quốc và Ủy viên Trung ương Mặt trận (EXH) có thể chia sẻ nội dung như sau:
+- Không công bằng vào vấn đề quốc tế là hai nước nói chung và cả hai nước nói chung.
+- Một nước Trung Đông được thông qua theo dõi, trong đó có các quốc gia trên thế giới và của họ là đối tác chiến lược của Trung Quốc;
+- Luận giải pháp của trung tâm nghiên cứu và phát triển và công nghiệp lớn
+[distinct-1 0.777 | distinct-2 0.973 | distinct-4 1.000 | chuỗi lặp dài nhất 1 -> LỆCH]
 
 ======================================================================
 "Theo báo cáo mới nhất,"
 ----------------------------------------------------------------------
-Theo báo cáo mới nhất, vào ngày 4/9 tới đây, bắt đầu với nỗ lực để xây dựng các chỉ tiêu đã đề ra.
-Với việc công bố mục tiêu trở thành sản phẩm điện tử trước khi gia nhập thị trường, ông Lee thực hiện tham mưu trưởng hai nhà lãnh đạo của mình là "Thiết kế sản xuất màn hình" (nhân viên đề nghị truyền thông) trên mạng xã hội
-Trước đó, sau buổi phát biểu tại cuộc họp, ông Kim Liên - Trưởng phòng Khảo sát khoa học và Khoa học Tự nhiên Việt Nam tại cuộc họp trực tuyến toàn quốc diễn ra sáng 23/6,
-[distinct-1 0.936 | distinct-2 0.991 | distinct-4 1.000 | chuỗi lặp dài nhất 1]
+Theo báo cáo mới nhất, FPT sẽ tiếp tục triển khai ứng dụng AI để được cập nhật và nhận nhiều ứng dụng, dịch vụ tiện ích nhất. Bên cạnh đó, FPT cũng có thêm nhiều lựa chọn về ứng dụng mới.
+Về tổng thể, đến nay FPT đang đứng thứ 4 ở thứ 5 và riêng số 7, trong đó giới thiệu các ứng dụng AI để hiểu về ứng dụng AI trên, giúp cho cộng đồng người dùng đang có nhu cầu "nhất" và lên kế hoạch phát triển ứng dụng AI.
+Link phân loại: FPT miễn phí
+https://www.com/vi-center/vi
+[distinct-1 0.772 | distinct-2 0.920 | distinct-4 0.990 | chuỗi lặp dài nhất 2 -> tự nhiên]
 
 ======================================================================
 "Cách nấu phở bò ngon là"
 ----------------------------------------------------------------------
-Cách nấu phở bò ngon là món rán được ai sử dụng các món nạp năng lượng với nhiều nguyên liệu. Đặc biệt với nhiều thực khách nữa, bạn có thể thử, thưởng thức món này với cơm giòn và tiêu vừa bụng lại mặn ngọt. Từng miếng rồi cuộn, rau sống sẽ không tiếp tục lên bếp ăn vặt, hoặc thịt nướng kèm đậm đà cùng với tiếng tên rất dày trong veo.
-Sưng xào cay 3g tỏi ớt – 1 thìa canh thịt
-(3-10 phút) - Yến rang xay nhuyễn, thái nhỏ tạo hình heo, phần ngọn và còn sót lại ở trong miệng mình. Cô
-[distinct-1 0.907 | distinct-2 0.991 | distinct-4 1.000 | chuỗi lặp dài nhất 1]
+Cách nấu phở bò ngon là món ăn dân dã, là món ăn giản dị, hữu và thú vị.
+Không chỉ cơm nước ngọt, ăn bất thường, món ăn dân dã còn bán với giá rẻ, nhưng vẫn đảm bảo được chất lượng món ăn và luôn nằm trong thức ăn ngon. Tuy nhiên, không phải cơm nước ngọt đúng cách để có thể thưởng thức một món ăn cay chua, nhưng lại có thể thưởng thức được những món chay ngọt lịm của làng quê mình.
+Với những loại hoa tươi ngon từ nước mặn, dai, món cơm gà nướng của làng quê Hương dành cho bạn thưởng thức món bò
+[distinct-1 0.679 | distinct-2 0.883 | distinct-4 0.991 | chuỗi lặp dài nhất 2 -> tự nhiên]
 
 ======================================================================
 "Trong lĩnh vực công nghệ thông tin,"
 ----------------------------------------------------------------------
-Trong lĩnh vực công nghệ thông tin, ứng dụng AI của Google sẽ được cung cấp khi có nhiều lựa chọn để chỉ đơn giản và dễ dàng tiếp cận hơn.<eos><bos>Chất lượng bài viết: Cách tính điểm đồng hồ Anh ngữ > Ứng dụng & Truyện
-5-10 năm 2000
-Hiểu và phân tích sinh học nào? (Ngọc Anh) - Nhà xuất bản Online – Giáo dục học Đại học ( ĐHQGHN) là gì
-WM là "tư liệu nhân đạo đức" thuộc dạng từ mô tả về nhân vật, trí tuệ và con người cũng như các câu chuyện văn hóa. Chúng đã trở nên quen thuộc với chủ
-[distinct-1 0.926 | distinct-2 1.000 | distinct-4 1.000 | chuỗi lặp dài nhất 1]
+Trong lĩnh vực công nghệ thông tin, phong trào văn hóa và niềm vui của tổ chức Công đoàn; tập trung thực hiện nghiêm túc, có hiệu quả công tác tuyên truyền, đánh giá quá trình tổ chức các hoạt động xã hội, làm theo chủ đề có hiệu quả các đối tượng đã đạt được trong thời gian tới.
+[hết bài — model tự phát <eos>]
+[distinct-1 0.896 | distinct-2 0.955 | distinct-4 1.000 | chuỗi lặp dài nhất 1 -> LỆCH]

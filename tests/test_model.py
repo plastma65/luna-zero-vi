@@ -408,3 +408,23 @@ def test_khong_co_eos_thi_sinh_du(tiny_model: LunaZeroGPT) -> None:
     x = torch.zeros((1, 2), dtype=torch.long)
     y = tiny_model.sinh(x, max_new_tokens=15, dung_o_eos=True, top_p=0.9)
     assert y.shape[1] >= 3
+
+
+# --- eval phải tất định -----------------------------------------------------
+def test_dat_lai_vi_tri_cho_cung_lat_du_lieu(bin_gia: Path) -> None:
+    """val loss chỉ so được giữa các bước nếu MỌI lần đo dùng đúng một lát dữ liệu.
+
+    Lỗi đã xảy ra thật: loader val không được đặt lại nên mỗi lần eval lấy 160 cửa sổ
+    mới. val loss 3,1014 rồi 3,2053 — không biết model tệ đi hay chỉ gặp lát khó hơn.
+    Và best.pt được chọn theo con số đó.
+    """
+    ld = BatchLoader(bin_gia, "train", block_size=8, device="cpu", seed=4)
+    lan_1 = [ld.lay_batch(2)[0] for _ in range(3)]
+    # Không đặt lại -> lát khác hẳn
+    lan_2_troi = [ld.lay_batch(2)[0] for _ in range(3)]
+    assert not all(torch.equal(a, b) for a, b in zip(lan_1, lan_2_troi, strict=True))
+
+    # Đặt lại -> đúng lát cũ
+    ld.dat_vi_tri(0)
+    lan_3 = [ld.lay_batch(2)[0] for _ in range(3)]
+    assert all(torch.equal(a, b) for a, b in zip(lan_1, lan_3, strict=True))

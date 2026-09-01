@@ -37,3 +37,13 @@ def test_train_py_dem_buoc_tu_lan_in() -> None:
     )
     assert "tps = plan.tokens_per_step * buoc_tu_lan_in / giay" in src
     assert "* log_moi / giay" not in src, "vẫn còn giả định đủ log_moi bước"
+
+
+def test_train_py_dat_lai_loader_val_truoc_moi_lan_do() -> None:
+    """Khoá lại phép sửa trong mã nguồn, không chỉ trong ý định."""
+    src = (Path(__file__).resolve().parents[1] / "src" / "luna_zero" / "train.py").read_text(
+        encoding="utf-8"
+    )
+    i = src.index("def do_val()")
+    j = src.index("model.eval()", i)
+    assert "val_loader.dat_vi_tri(0)" in src[i:j], "eval phải đặt lại loader val trước khi đo"

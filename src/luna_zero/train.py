@@ -131,6 +131,14 @@ def train_loop(
 
     @torch.no_grad()
     def do_val() -> float:
+        """Đo val loss trên ĐÚNG một lát dữ liệu cố định, mọi lần đo.
+
+        Bản đầu không đặt lại vị trí loader, nên mỗi lần eval lấy 160 cửa sổ MỚI —
+        val loss giữa hai bước khác nhau vì cả model lẫn dữ liệu đều đổi, không tách
+        được phần nào là tiến bộ. Tệ hơn: `best.pt` được chọn theo con số đó, tức bản
+        "tốt nhất" một phần do may. Đặt lại về 0 làm phép đo tất định và so được.
+        """
+        val_loader.dat_vi_tri(0)
         model.eval()
         tong = 0.0
         for _ in range(eval_batches):
