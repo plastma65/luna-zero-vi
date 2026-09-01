@@ -102,7 +102,10 @@ def train_loop(
     # thấy chuỗi "cuda", kể cả lúc autocast đang tắt.
     loai_tb = "cuda" if device.startswith("cuda") else "cpu"
     dung_amp = loai_tb == "cuda"
-    scaler = torch.amp.GradScaler(device=loai_tb, enabled=dung_amp)
+    # GradScaler chỉ cần cho fp16 (dải số hẹp, gradient dễ tràn xuống 0). Ta dùng
+    # bfloat16 — cùng dải mũ với fp32 — nên scaler là thừa. Giữ đối tượng để mã đường
+    # đi thống nhất nhưng TẮT hẳn, thay vì chạy một phép nhân/chia vô nghĩa mỗi bước.
+    scaler = torch.amp.GradScaler(device=loai_tb, enabled=False)
 
     manager = CheckpointManager(checkpoint_dir, max_keep=train_cfg.max_checkpoints_keep)
     da_co = manager.load_latest()
@@ -137,7 +140,17 @@ def train_loop(
         model.train()
         return tong / eval_batches
 
+    def _dong_bo() -> None:
+        """Ép GPU chạy xong việc trước khi bấm giờ.
+
+        CUDA chạy bất đồng bộ: không đồng bộ thì phép đo token/giây đo tốc độ XẾP HÀNG
+        lệnh chứ không phải tốc độ tính, và cho con số cao hơn sự thật.
+        """
+        if loai_tb == "cuda":
+            torch.cuda.synchronize()
+
     model.train()
+    _dong_bo()
     t0 = time.perf_counter()
     with NgatMemMai() as ngat:
         for step in range(state.step, tong_buoc):
@@ -169,13 +182,22 @@ def train_loop(
             )
 
             if (step + 1) % log_moi == 0:
+                _dong_bo()
                 giay = time.perf_counter() - t0
-                tps = state.tokens_seen and plan.tokens_per_step * log_moi / giay
+                tps = plan.tokens_per_step * log_moi / giay
+                vram = ""
+                if loai_tb == "cuda":
+                    dinh = torch.cuda.max_memory_allocated() / 1024**3
+                    giu = torch.cuda.max_memory_reserved() / 1024**3
+                    vram = f" | VRAM {dinh:.2f}/{giu:.2f}GB"
+                con_gio = (tong_buoc - step - 1) * giay / log_moi / 3600
                 print(
                     f"bước {step + 1:>7,}/{tong_buoc:,} | loss {loss_gop:.4f} "
-                    f"| lr {lr:.2e} | {tps / 1e3:.1f}k token/s",
+                    f"| lr {lr:.2e} | {tps / 1e3:.1f}k tok/s{vram}"
+                    f" | còn {con_gio:.1f}h",
                     flush=True,
                 )
+                _dong_bo()
                 t0 = time.perf_counter()
 
             den_luc_luu = (step + 1) % train_cfg.save_every_steps == 0

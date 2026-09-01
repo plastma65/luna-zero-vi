@@ -66,7 +66,20 @@ def test_moi_chuoi_cuda_deu_la_so_sanh_chu_khong_phai_gan(path: Path) -> None:
         # không phải phép gán. Bản đầu của test này đỏ oan vì quên hai trường hợp đó —
         # test bắt nhầm code đúng cũng tai hại ngang test bỏ lọt code sai.
         if not any(
-            k in line for k in ("startswith", "==", "!=", "if ", "is_available", "help=", '"""')
+            # `torch.cuda.<gì đó>` là lời gọi API trong không gian tên (synchronize,
+            # max_memory_allocated), không phải gán thiết bị cho tensor — và chúng luôn
+            # nằm trong nhánh `if loai_tb == "cuda"`.
+            k in line
+            for k in (
+                "startswith",
+                "==",
+                "!=",
+                "if ",
+                "is_available",
+                "help=",
+                '"""',
+                "torch.cuda.",
+            )
         )
     ]
     assert not xau, f"{path.relative_to(REPO_ROOT)} gán cứng cuda: {xau}"
