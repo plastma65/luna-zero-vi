@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from luna_zero import config  # noqa: E402
 from luna_zero.checkpoint import CheckpointManager  # noqa: E402
+from luna_zero.do_sinh import do_lap  # noqa: E402
 from luna_zero.tokenizer import LunaTokenizer  # noqa: E402
 
 MOI_MAC_DINH = [
@@ -109,7 +110,8 @@ def main() -> int:
             # Bỏ BOS trước khi giải mã, giữ nguyên phần còn lại.
             van_ban = tok.decode(ra[0, 1:].tolist())
             nhan = f'"{moi}"' if args.so_mau == 1 else f'"{moi}" [{i + 1}]'
-            khoi = f"\n{'=' * 70}\n{nhan}\n{'-' * 70}\n{van_ban}"
+            chi_so = do_lap(van_ban)
+            khoi = f"\n{'=' * 70}\n{nhan}\n{'-' * 70}\n{van_ban}\n[{chi_so}]"
             print(khoi)
             dong.append(khoi)
 
