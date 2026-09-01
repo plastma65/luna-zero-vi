@@ -44,27 +44,41 @@ def test_mot_tu_khong_no() -> None:
 
 
 # --- neo vào văn bản người viết ---------------------------------------------
-def test_khoang_tu_nhien_bao_quanh_so_do_duoc() -> None:
-    from luna_zero.do_sinh import DISTINCT2_KHOANG_TU_NHIEN, DISTINCT2_NGUOI_VIET
+def test_khoang_hep_dan_khi_van_ban_dai_ra() -> None:
+    """distinct-n phụ thuộc độ dài — đây là lý do phải tra bảng theo số từ.
 
-    thap, cao = DISTINCT2_KHOANG_TU_NHIEN
-    assert thap < DISTINCT2_NGUOI_VIET < cao
+    Bản đầu dùng MỘT mốc 0,853 lấy từ document đầy đủ rồi đem so với mẫu model 120 từ,
+    và gắn nhãn LỆCH nhầm cho một mẫu bình thường.
+    """
+    from luna_zero.do_sinh import khoang_nguoi_viet
+
+    _, tv_ngan, _ = khoang_nguoi_viet(60)
+    _, tv_vua, _ = khoang_nguoi_viet(120)
+    _, tv_dai, _ = khoang_nguoi_viet(5_000)
+    assert tv_ngan > tv_vua > tv_dai, "văn bản dài hơn phải có distinct-2 thấp hơn"
+
+
+def test_0963_o_do_dai_120_tu_la_TU_NHIEN() -> None:
+    """Ca thật đã bị gắn nhãn sai: mẫu phở ở bước 11.304, 120 từ, distinct-2 0,963."""
+    from luna_zero.do_sinh import trong_khoang_tu_nhien
+
+    assert trong_khoang_tu_nhien(0.963, n_tu=120)
+    # Cùng con số đó nhưng ở văn bản dài thì đúng là bất thường.
+    assert not trong_khoang_tu_nhien(0.963, n_tu=5_000)
 
 
 def test_lap_nang_bi_danh_dau_lech() -> None:
     from luna_zero.do_sinh import trong_khoang_tu_nhien
 
-    assert not trong_khoang_tu_nhien(do_lap("bảo đảm, bảo đảm, bảo đảm, bảo đảm").distinct_2)
+    assert not trong_khoang_tu_nhien(
+        do_lap("bảo đảm, bảo đảm, bảo đảm, bảo đảm").distinct_2, n_tu=8
+    )
 
 
 def test_da_dang_qua_muc_CUNG_bi_danh_dau_lech() -> None:
-    """Phép đo hai chiều. distinct-2 = 1.000 KHÔNG phải điểm tuyệt đối.
-
-    Văn bản người viết có distinct-2 quanh 0,853 — tức nó CÓ lặp. Model đạt 1,000 nghĩa
-    là phạt lặp đã đè quá tay, không phải model viết hay hơn người. Nếu chỉ canh một
-    chiều "càng cao càng tốt" thì ta lại tự lừa mình bằng một con số đẹp.
-    """
+    """Phép đo hai chiều. distinct-2 = 1.000 trên văn bản DÀI không phải điểm tuyệt đối:
+    văn bản người viết có lặp, đè sạch là bất thường chứ không phải hay hơn."""
     from luna_zero.do_sinh import trong_khoang_tu_nhien
 
-    assert not trong_khoang_tu_nhien(1.0)
-    assert not trong_khoang_tu_nhien(0.99)
+    assert not trong_khoang_tu_nhien(1.0, n_tu=5_000)
+    assert not trong_khoang_tu_nhien(0.99, n_tu=400)
