@@ -360,3 +360,51 @@ def test_sinh_khong_lap_vo_han_voi_phat_lap(tiny_model: LunaZeroGPT) -> None:
     torch.manual_seed(0)
     co_phat = tiny_model.sinh(x, max_new_tokens=60, top_p=0.9, phat_lap=1.3)
     assert len(set(co_phat[0].tolist())) >= len(set(khong_phat[0].tolist()))
+
+
+# --- dừng ở EOS -------------------------------------------------------------
+def test_dung_ngay_khi_gap_eos() -> None:
+    """Model đã học ranh giới document nên tự phát <eos>. Vòng sinh phải dừng ở đó.
+
+    Không dừng thì nó đi thẳng sang document kế, và người đọc thấy một cú nhảy chủ đề
+    trông như model lạc đề — trong khi thật ra nó đang làm ĐÚNG.
+    """
+    from luna_zero.config import EOS_ID
+
+    class LuonSinhEOS(LunaZeroGPT):
+        def forward(self, idx, targets=None):  # type: ignore[override]
+            out = super().forward(idx, targets)
+            out.logits[:, -1, :] = -1e4
+            out.logits[:, -1, EOS_ID] = 1e4
+            return out
+
+    m = LuonSinhEOS(TINY)
+    x = torch.zeros((1, 2), dtype=torch.long)
+    y = m.sinh(x, max_new_tokens=50, dung_o_eos=True)
+    assert y.shape[1] == 3, "phải dừng ngay sau token <eos> đầu tiên"
+    assert int(y[0, -1]) == EOS_ID
+
+
+def test_khong_dung_o_eos_thi_sinh_du_so_token() -> None:
+    """Chiều ngược lại phải thật sự khác, nếu không cờ dung_o_eos là trang trí."""
+    from luna_zero.config import EOS_ID
+
+    class LuonSinhEOS(LunaZeroGPT):
+        def forward(self, idx, targets=None):  # type: ignore[override]
+            out = super().forward(idx, targets)
+            out.logits[:, -1, :] = -1e4
+            out.logits[:, -1, EOS_ID] = 1e4
+            return out
+
+    m = LuonSinhEOS(TINY)
+    x = torch.zeros((1, 2), dtype=torch.long)
+    y = m.sinh(x, max_new_tokens=10, dung_o_eos=False)
+    assert y.shape[1] == 12
+
+
+def test_khong_co_eos_thi_sinh_du(tiny_model: LunaZeroGPT) -> None:
+    """Model bình thường hiếm khi phát <eos> ngay — không được dừng non."""
+    torch.manual_seed(0)
+    x = torch.zeros((1, 2), dtype=torch.long)
+    y = tiny_model.sinh(x, max_new_tokens=15, dung_o_eos=True, top_p=0.9)
+    assert y.shape[1] >= 3

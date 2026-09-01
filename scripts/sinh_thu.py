@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from luna_zero import config  # noqa: E402
 from luna_zero.checkpoint import CheckpointManager  # noqa: E402
-from luna_zero.do_sinh import do_lap  # noqa: E402
+from luna_zero.do_sinh import do_lap, trong_khoang_tu_nhien  # noqa: E402
 from luna_zero.tokenizer import LunaTokenizer  # noqa: E402
 
 MOI_MAC_DINH = [
@@ -40,8 +40,8 @@ def main() -> int:
     p.add_argument(
         "--phat-lap",
         type=float,
-        default=1.15,
-        help="1.0 = tắt. Cắt vòng lặp kiểu 'bảo đảm, bảo đảm, bảo đảm'.",
+        default=1.05,
+        help="1.0 = tắt. 1.15 đè lặp quá tay (distinct-2 vượt mức người viết 0.853).",
     )
     p.add_argument(
         "--luu",
@@ -50,6 +50,11 @@ def main() -> int:
     )
     p.add_argument("--device", default=None)
     p.add_argument("--best", action="store_true", help="dùng best.pt thay vì bản mới nhất")
+    p.add_argument(
+        "--khong-dung-eos",
+        action="store_true",
+        help="sinh tiếp qua <eos> sang document kế. Mặc định dừng ở hết bài.",
+    )
     args = p.parse_args()
 
     import torch
@@ -106,12 +111,21 @@ def main() -> int:
                 top_k=args.top_k,
                 top_p=args.top_p if args.top_p else None,
                 phat_lap=args.phat_lap,
+                dung_o_eos=not args.khong_dung_eos,
             )
-            # Bỏ BOS trước khi giải mã, giữ nguyên phần còn lại.
-            van_ban = tok.decode(ra[0, 1:].tolist())
+            # Bỏ BOS trước khi giải mã. Cắt ở <eos> nếu có: để lọt vào chuỗi thì
+            # decode in ra chữ "<eos>" giữa văn bản, trông như model viết bậy.
+            ids_ra = ra[0, 1:].tolist()
+            het_bai = config.EOS_ID in ids_ra
+            if het_bai:
+                ids_ra = ids_ra[: ids_ra.index(config.EOS_ID)]
+            van_ban = tok.decode(ids_ra)
+            if het_bai:
+                van_ban += "\n[hết bài — model tự phát <eos>]"
             nhan = f'"{moi}"' if args.so_mau == 1 else f'"{moi}" [{i + 1}]'
             chi_so = do_lap(van_ban)
-            khoi = f"\n{'=' * 70}\n{nhan}\n{'-' * 70}\n{van_ban}\n[{chi_so}]"
+            danh_gia = "tự nhiên" if trong_khoang_tu_nhien(chi_so.distinct_2) else "LỆCH"
+            khoi = f"\n{'=' * 70}\n{nhan}\n{'-' * 70}\n{van_ban}" f"\n[{chi_so} -> {danh_gia}]"
             print(khoi)
             dong.append(khoi)
 

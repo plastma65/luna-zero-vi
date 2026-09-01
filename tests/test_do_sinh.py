@@ -41,3 +41,30 @@ def test_mot_tu_khong_no() -> None:
     assert d.n_token == 1
     assert d.distinct_1 == 1.0
     assert d.distinct_4 == 0.0
+
+
+# --- neo vào văn bản người viết ---------------------------------------------
+def test_khoang_tu_nhien_bao_quanh_so_do_duoc() -> None:
+    from luna_zero.do_sinh import DISTINCT2_KHOANG_TU_NHIEN, DISTINCT2_NGUOI_VIET
+
+    thap, cao = DISTINCT2_KHOANG_TU_NHIEN
+    assert thap < DISTINCT2_NGUOI_VIET < cao
+
+
+def test_lap_nang_bi_danh_dau_lech() -> None:
+    from luna_zero.do_sinh import trong_khoang_tu_nhien
+
+    assert not trong_khoang_tu_nhien(do_lap("bảo đảm, bảo đảm, bảo đảm, bảo đảm").distinct_2)
+
+
+def test_da_dang_qua_muc_CUNG_bi_danh_dau_lech() -> None:
+    """Phép đo hai chiều. distinct-2 = 1.000 KHÔNG phải điểm tuyệt đối.
+
+    Văn bản người viết có distinct-2 quanh 0,853 — tức nó CÓ lặp. Model đạt 1,000 nghĩa
+    là phạt lặp đã đè quá tay, không phải model viết hay hơn người. Nếu chỉ canh một
+    chiều "càng cao càng tốt" thì ta lại tự lừa mình bằng một con số đẹp.
+    """
+    from luna_zero.do_sinh import trong_khoang_tu_nhien
+
+    assert not trong_khoang_tu_nhien(1.0)
+    assert not trong_khoang_tu_nhien(0.99)

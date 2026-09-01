@@ -178,6 +178,7 @@ class LunaZeroGPT(nn.Module):
         top_k: int | None = None,
         top_p: float | None = None,
         phat_lap: float = 1.0,
+        dung_o_eos: bool = True,
     ) -> torch.Tensor:
         """Sinh token tự hồi quy. Cắt ngữ cảnh về block_size khi vượt.
 
@@ -189,7 +190,13 @@ class LunaZeroGPT(nn.Module):
         `phat_lap` > 1 hạ điểm các token ĐÃ xuất hiện. Model 110M non rất hay rơi vào
         vòng lặp kiểu "bảo đảm, bảo đảm, bảo đảm" — phạt lặp cắt vòng đó. Lưu ý: đây là
         che triệu chứng, không phải chữa. Cách chữa thật là train thêm.
+
+        `dung_o_eos`: dừng khi model phát ra <eos>. Không có nó thì model đi thẳng sang
+        document kế tiếp — vẫn hợp lệ vì nó học đúng cấu trúc <bos>...<eos><bos>..., nhưng
+        khi đọc kết quả thì trông như "lạc đề" trong khi thật ra là đã sang bài khác.
         """
+        from luna_zero.config import EOS_ID
+
         self.eval()
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.cfg.block_size :]
@@ -218,7 +225,10 @@ class LunaZeroGPT(nn.Module):
                 logits = torch.full_like(logits, -float("inf")).scatter(1, chi_so, sap)
 
             probs = F.softmax(logits, dim=-1)
-            idx = torch.cat([idx, torch.multinomial(probs, num_samples=1)], dim=1)
+            tiep = torch.multinomial(probs, num_samples=1)
+            idx = torch.cat([idx, tiep], dim=1)
+            if dung_o_eos and bool((tiep == EOS_ID).all()):
+                break
         return idx
 
     def nhom_tham_so_optimizer(self, weight_decay: float) -> list[dict]:

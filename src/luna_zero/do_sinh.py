@@ -11,6 +11,20 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
+# NEO ĐO ĐƯỢC, không phải con số tra sách: distinct-2 trung vị của 284 document
+# tiếng Việt do người viết, lấy từ chính corpus train (culturax_vi_0030).
+# Dùng làm mốc hai chiều:
+#   thấp hơn nhiều  -> model đang lặp (chưa train đủ, hoặc lấy mẫu quá hẹp)
+#   CAO HƠN nhiều   -> phạt lặp quá tay; văn bản thật CÓ lặp, đè hết là thành bất thường
+DISTINCT2_NGUOI_VIET = 0.853
+DISTINCT2_KHOANG_TU_NHIEN = (0.78, 0.93)
+
+
+def trong_khoang_tu_nhien(d2: float) -> bool:
+    """distinct-2 có nằm trong khoảng văn bản người viết không."""
+    thap, cao = DISTINCT2_KHOANG_TU_NHIEN
+    return thap <= d2 <= cao
+
 
 def _ngram(tokens: list[str], n: int) -> list[tuple[str, ...]]:
     return [tuple(tokens[i : i + n]) for i in range(len(tokens) - n + 1)]
