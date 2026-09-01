@@ -152,6 +152,11 @@ def train_loop(
     model.train()
     _dong_bo()
     t0 = time.perf_counter()
+    # ĐẾM bước từ lần in trước, không giả định luôn đúng log_moi bước. Khi chạy tiếp từ
+    # checkpoint, bước đầu tiên rơi vào giữa khoảng in: chạy tiếp từ bước 27 rồi in ở
+    # bước 30 là chỉ 3 bước, nhưng công thức cũ vẫn chia cho 10 -> báo 71,5k tok/s
+    # trong khi thực tế 22k. Con số bịa mà không có gì báo sai.
+    buoc_tu_lan_in = 0
     with NgatMemMai() as ngat:
         for step in range(state.step, tong_buoc):
             lr = lr_tai_buoc(step, plan, train_cfg)
@@ -181,16 +186,17 @@ def train_loop(
                 best_val_loss=state.best_val_loss,
             )
 
+            buoc_tu_lan_in += 1
             if (step + 1) % log_moi == 0:
                 _dong_bo()
                 giay = time.perf_counter() - t0
-                tps = plan.tokens_per_step * log_moi / giay
+                tps = plan.tokens_per_step * buoc_tu_lan_in / giay
                 vram = ""
                 if loai_tb == "cuda":
                     dinh = torch.cuda.max_memory_allocated() / 1024**3
                     giu = torch.cuda.max_memory_reserved() / 1024**3
                     vram = f" | VRAM {dinh:.2f}/{giu:.2f}GB"
-                con_gio = (tong_buoc - step - 1) * giay / log_moi / 3600
+                con_gio = (tong_buoc - step - 1) * giay / buoc_tu_lan_in / 3600
                 print(
                     f"bước {step + 1:>7,}/{tong_buoc:,} | loss {loss_gop:.4f} "
                     f"| lr {lr:.2e} | {tps / 1e3:.1f}k tok/s{vram}"
@@ -199,6 +205,7 @@ def train_loop(
                 )
                 _dong_bo()
                 t0 = time.perf_counter()
+                buoc_tu_lan_in = 0
 
             den_luc_luu = (step + 1) % train_cfg.save_every_steps == 0
             if den_luc_luu or ngat.duoc_yeu_cau_dung or (step + 1) == tong_buoc:

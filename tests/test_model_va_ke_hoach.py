@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-# model.py import torch ở mức module. Bỏ qua cả file khi máy chưa cài torch, thay vì
-# làm hỏng việc thu thập test và kéo sập toàn bộ suite.
-pytest.importorskip("torch", reason="model.py cần torch")
+from luna_zero.checkpoint import TrainState
+from luna_zero.config import MODEL, TRAIN
 
-from luna_zero.checkpoint import TrainState  # noqa: E402
-from luna_zero.config import MODEL, TRAIN  # noqa: E402
-from luna_zero.model import estimate_num_params, estimate_vram_gb  # noqa: E402
-from luna_zero.train import con_lai, make_plan  # noqa: E402
+# sizing.py cố ý KHÔNG cần torch: phép tính quyết định model có vừa card hay không
+# phải chạy được cả trên máy chưa cài torch.
+from luna_zero.sizing import estimate_num_params, estimate_vram_gb
+from luna_zero.train import con_lai, make_plan
 
 
 def test_so_tham_so_quanh_110m() -> None:
@@ -29,12 +28,19 @@ def test_ke_hoach_train_trong_khoang_ngay_chu_khong_phai_tuan() -> None:
         TRAIN.micro_batch_size * TRAIN.grad_accum_steps * MODEL.block_size
     )
     assert plan.total_steps * plan.tokens_per_step <= TRAIN.target_tokens
-    assert 2 <= plan.estimated_days <= 7, f"ước lượng {plan.estimated_days:.1f} ngày, lệch kế hoạch"
+    # Khoảng này bám theo tốc độ ĐO THẬT 22k token/s trên 3060 (config đặt 20k làm biên),
+    # cho ~1,3 ngày. Bản đầu canh 2-7 ngày vì dựa trên phỏng đoán 6.000 token/s.
+    # Ra ngoài khoảng 1-3 ngày nghĩa là cấu hình hoặc phần cứng đã đổi -> phải xem lại.
+    assert (
+        1.0 <= plan.estimated_days <= 3.0
+    ), f"ước lượng {plan.estimated_days:.2f} ngày, lệch khỏi kế hoạch đã đo"
 
 
-# Trần VRAM cho test: card 12GB, mục tiêu ~4,5GB. Đặt 6,0GB để còn biên cho phân mảnh
-# bộ nhớ và eval xen kẽ. Vượt trần nghĩa là cấu hình đã rời khỏi kế hoạch đã chốt.
-VRAM_TRAN_GB = 6.0
+# Trần VRAM cho test. Ngân sách thật KHÔNG phải 12GB: màn hình cắm vào chính 3060 nên
+# Windows và trình duyệt đã ăn ~1,5GB, còn khoảng 10,5GB dùng được. Đo thật cho 6,91GB
+# cấp phát / 8,16GB giữ chỗ. Đặt trần 9,0GB: đủ chỗ cho cấu hình hiện tại, và đỏ ngay
+# nếu ai chỉnh batch hay block_size làm nó chạm mức nguy hiểm.
+VRAM_TRAN_GB = 9.0
 
 
 def test_vram_uoc_luong_nam_trong_tran() -> None:
@@ -74,3 +80,24 @@ def test_qua_ke_hoach_khong_ra_so_am() -> None:
         plan, TrainState(step=plan.total_steps * 2, tokens_seen=0, data_position=0)
     )
     assert steps == 0 and hours == 0.0
+
+
+# Số ĐO THẬT trên RTX 3060, cấu hình đã chốt, ngày 2026-09-02:
+#   torch.cuda.max_memory_allocated() = 6.91 GB
+VRAM_DO_THAT_GB = 6.91
+
+
+def test_uoc_luong_vram_bam_sat_so_do_that() -> None:
+    """Neo ước lượng vào phép đo thật, không chỉ vào một cái trần.
+
+    `test_vram_uoc_luong_nam_trong_tran` chỉ bắt được ước lượng QUÁ CAO. Nhưng chiều
+    nguy hiểm là QUÁ THẤP: hệ số kích hoạt 20 của bản đầu cho 4,46GB — nói "vừa card"
+    trong khi thực tế 6,91GB. Nếu ai đó hạ hệ số xuống, ước lượng sẽ dễ chịu hơn và
+    trần 9GB vẫn xanh, rồi lần train thật mới tràn VRAM.
+    """
+    uoc = estimate_vram_gb()
+    lech = abs(uoc - VRAM_DO_THAT_GB) / VRAM_DO_THAT_GB
+    assert lech <= 0.15, (
+        f"ước {uoc:.2f}GB lệch {lech:.0%} so với số đo thật {VRAM_DO_THAT_GB}GB. "
+        "Hoặc hệ số kích hoạt sai, hoặc cấu hình đã đổi và cần đo lại trên GPU."
+    )

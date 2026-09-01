@@ -166,8 +166,7 @@ def test_ctrl_c_lan_hai_thoat_ngay() -> None:
 
 # --- đĩa -------------------------------------------------------------------
 def test_uoc_luong_dung_luong_dia_hop_ly() -> None:
-    pytest.importorskip("torch", reason="estimate_num_params nằm trong model.py")
-    from luna_zero.model import estimate_num_params
+    from luna_zero.sizing import estimate_num_params
 
     gb = uoc_luong_dung_luong_gb(estimate_num_params())
     assert 3.0 <= gb <= 8.0, f"ước {gb:.1f}GB — kiểm lại trần checkpoint"

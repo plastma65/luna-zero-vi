@@ -12,50 +12,31 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from luna_zero.config import MODEL, TRAIN, ModelConfig, TrainConfig
+from luna_zero.config import MODEL, ModelConfig
 
+# Phép tính kích cỡ sống ở sizing.py (không cần torch). Re-export để mã cũ không gãy.
+from luna_zero.sizing import (
+    ACTIVATION_FACTOR,
+    BYTES_FP16,
+    BYTES_PER_PARAM_ADAMW,
+    estimate_num_params,
+    estimate_vram_gb,
+    format_params,
+)
 
-# --- đếm tham số và VRAM (không cần khởi tạo mạng) --------------------------
-def estimate_num_params(cfg: ModelConfig = MODEL, tie_embeddings: bool = True) -> int:
-    """Đếm tham số theo công thức. Test khoá con số 110M đã chốt bằng hàm này."""
-    d = cfg.d_model
-    bias = 1 if cfg.bias else 0
-
-    token_emb = cfg.vocab_size * d
-    pos_emb = cfg.block_size * d
-
-    attn = 4 * d * d + bias * 4 * d
-    mlp = 8 * d * d + bias * 5 * d
-    norms = 2 * d * (1 + bias)
-    per_layer = attn + mlp + norms
-
-    total = token_emb + pos_emb + cfg.n_layer * per_layer + d * (1 + bias)
-    if not tie_embeddings:
-        total += cfg.vocab_size * d
-    return total
-
-
-def format_params(n: int) -> str:
-    return f"{n / 1e6:.1f}M"
-
-
-ACTIVATION_FACTOR = 20
-BYTES_FP16 = 2
-BYTES_PER_PARAM_ADAMW = 16
-
-
-def estimate_vram_gb(model: ModelConfig = MODEL, train: TrainConfig = TRAIN) -> float:
-    """Ước lượng VRAM lúc train (GB). Giả định attention hợp nhất, không vật chất hoá T x T."""
-    state = estimate_num_params(model) * BYTES_PER_PARAM_ADAMW
-    activations = (
-        train.micro_batch_size
-        * model.block_size
-        * model.d_model
-        * model.n_layer
-        * ACTIVATION_FACTOR
-        * BYTES_FP16
-    )
-    return (state + activations) / 1024**3
+__all__ = [
+    "ACTIVATION_FACTOR",
+    "BYTES_FP16",
+    "BYTES_PER_PARAM_ADAMW",
+    "Block",
+    "CausalSelfAttention",
+    "GPTOutput",
+    "LunaZeroGPT",
+    "MLP",
+    "estimate_num_params",
+    "estimate_vram_gb",
+    "format_params",
+]
 
 
 # --- mạng -------------------------------------------------------------------

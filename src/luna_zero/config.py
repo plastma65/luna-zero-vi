@@ -93,8 +93,11 @@ class TrainConfig:
     # phiên, nên mất 36 phút vì cúp điện là mất một phần đáng kể của cả phiên.
     # Mỗi lần ghi 1,3GB mất vài giây trên SSD -> phụ trội dưới 0,5% thời gian train.
     save_every_steps: int = 100
-    # Tốc độ đo thực tế trên RTX 3060 12GB, dùng để ước lượng thời gian chạy.
-    tokens_per_second_3060: int = 6_000
+    # ĐO THẬT trên RTX 3060 12GB ngày 2026-09-02: 22.000 token/s ổn định qua nhiều
+    # bước, bf16 + flash attention, sau khi đồng bộ CUDA trước lúc bấm giờ.
+    # Đặt 20.000 (thấp hơn ~9%) làm biên cho throttle nhiệt và chi phí ghi checkpoint
+    # khi chạy liên tục hàng chục giờ. Con số 6.000 ban đầu là phỏng đoán và sai 3,7 lần.
+    tokens_per_second_3060: int = 20_000
 
 
 def chon_thiet_bi(uu_tien: str | None = None) -> str:
