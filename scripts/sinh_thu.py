@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from luna_zero import config  # noqa: E402
 from luna_zero.checkpoint import CheckpointManager  # noqa: E402
-from luna_zero.do_sinh import do_lap, trong_khoang_tu_nhien  # noqa: E402
+from luna_zero.do_sinh import do_lap, khoang_nguoi_viet  # noqa: E402
 from luna_zero.tokenizer import LunaTokenizer  # noqa: E402
 
 MOI_MAC_DINH = [
@@ -124,7 +124,14 @@ def main() -> int:
                 van_ban += "\n[hết bài — model tự phát <eos>]"
             nhan = f'"{moi}"' if args.so_mau == 1 else f'"{moi}" [{i + 1}]'
             chi_so = do_lap(van_ban)
-            danh_gia = "tự nhiên" if trong_khoang_tu_nhien(chi_so.distinct_2) else "LỆCH"
+            # Phải so với người viết CÙNG ĐỘ DÀI — distinct-n tụt theo số từ.
+            p10, _, p90 = khoang_nguoi_viet(chi_so.n_token)
+            if chi_so.distinct_2 < p10:
+                danh_gia = f"LẶP (dưới p10={p10:.2f})"
+            elif chi_so.distinct_2 > p90:
+                danh_gia = f"ĐA DẠNG BẤT THƯỜNG (trên p90={p90:.2f})"
+            else:
+                danh_gia = "tự nhiên"
             khoi = f"\n{'=' * 70}\n{nhan}\n{'-' * 70}\n{van_ban}" f"\n[{chi_so} -> {danh_gia}]"
             print(khoi)
             dong.append(khoi)

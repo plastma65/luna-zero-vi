@@ -11,19 +11,44 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-# NEO ĐO ĐƯỢC, không phải con số tra sách: distinct-2 trung vị của 284 document
-# tiếng Việt do người viết, lấy từ chính corpus train (culturax_vi_0030).
-# Dùng làm mốc hai chiều:
-#   thấp hơn nhiều  -> model đang lặp (chưa train đủ, hoặc lấy mẫu quá hẹp)
-#   CAO HƠN nhiều   -> phạt lặp quá tay; văn bản thật CÓ lặp, đè hết là thành bất thường
-DISTINCT2_NGUOI_VIET = 0.853
-DISTINCT2_KHOANG_TU_NHIEN = (0.78, 0.93)
+# NEO ĐO ĐƯỢC trên 530-582 document tiếng Việt do người viết (culturax_vi_0030).
+#
+# distinct-n PHỤ THUỘC MẠNH VÀO ĐỘ DÀI: văn bản càng dài càng có cơ hội lặp, nên
+# distinct-2 tụt dần theo số từ. Bản đầu mình lấy mốc 0,853 từ document ĐẦY ĐỦ (400+ từ)
+# rồi đem so với mẫu model chỉ 100-120 từ — bất công với model, và đã gắn nhãn "LỆCH"
+# nhầm cho một mẫu hoàn toàn bình thường. So sánh phải cùng độ dài.
+#
+#   số từ | trung vị |  p10  |  p90
+#      60 |   0.932  | 0.746 | 1.000
+#     120 |   0.899  | 0.782 | 0.975
+#     400 |   0.867  | 0.777 | 0.940
+#  toàn bộ|   0.832  | 0.732 | 0.898
+BANG_NGUOI_VIET: dict[int, tuple[float, float, float]] = {
+    60: (0.746, 0.932, 1.000),
+    120: (0.782, 0.899, 0.975),
+    400: (0.777, 0.867, 0.940),
+    10_000: (0.732, 0.832, 0.898),
+}
 
 
-def trong_khoang_tu_nhien(d2: float) -> bool:
-    """distinct-2 có nằm trong khoảng văn bản người viết không."""
-    thap, cao = DISTINCT2_KHOANG_TU_NHIEN
-    return thap <= d2 <= cao
+def khoang_nguoi_viet(n_tu: int) -> tuple[float, float, float]:
+    """Trả (p10, trung vị, p90) của distinct-2 cho văn bản người viết dài `n_tu` từ."""
+    for nguong in sorted(BANG_NGUOI_VIET):
+        if n_tu <= nguong:
+            return BANG_NGUOI_VIET[nguong]
+    return BANG_NGUOI_VIET[max(BANG_NGUOI_VIET)]
+
+
+def trong_khoang_tu_nhien(d2: float, n_tu: int = 120) -> bool:
+    """distinct-2 có nằm trong khoảng p10-p90 của văn bản người viết CÙNG ĐỘ DÀI không.
+
+    Hai chiều đều bị bắt:
+      thấp hơn p10 -> model đang lặp (chưa train đủ, hoặc lấy mẫu quá hẹp)
+      cao hơn  p90 -> đa dạng bất thường; thường là phạt lặp quá tay. Văn bản thật CÓ
+                      lặp, đè sạch không phải viết hay hơn người.
+    """
+    p10, _, p90 = khoang_nguoi_viet(n_tu)
+    return p10 <= d2 <= p90
 
 
 def _ngram(tokens: list[str], n: int) -> list[tuple[str, ...]]:

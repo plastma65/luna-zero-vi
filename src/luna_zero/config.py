@@ -93,11 +93,15 @@ class TrainConfig:
     # phiên, nên mất 36 phút vì cúp điện là mất một phần đáng kể của cả phiên.
     # Mỗi lần ghi 1,3GB mất vài giây trên SSD -> phụ trội dưới 0,5% thời gian train.
     save_every_steps: int = 100
-    # ĐO THẬT trên RTX 3060 12GB ngày 2026-09-02: 22.000 token/s ổn định qua nhiều
-    # bước, bf16 + flash attention, sau khi đồng bộ CUDA trước lúc bấm giờ.
-    # Đặt 20.000 (thấp hơn ~9%) làm biên cho throttle nhiệt và chi phí ghi checkpoint
-    # khi chạy liên tục hàng chục giờ. Con số 6.000 ban đầu là phỏng đoán và sai 3,7 lần.
-    tokens_per_second_3060: int = 20_000
+    # ĐO THẬT trên RTX 3060 12GB: 23.900 token/s ổn định suốt hàng chục bước liên tiếp
+    # (bf16 + flash attention, đã đồng bộ CUDA trước khi bấm giờ). Nhịp tụt xuống
+    # 20-21k chỉ xuất hiện ngay sau mỗi lần lưu checkpoint — đó là eval + ghi đĩa lọt
+    # vào khoảng đo, khoảng 1,5% phụ trội.
+    #
+    # Đặt 22.000 làm biên. Hai con số trước đều là bài học: 6.000 là phỏng đoán thuần
+    # (sai 4 lần), và cú tụt xuống 0,5k từng bị mình quy cho ổ cứng cơ — thật ra là
+    # MÁY VÀO CHẾ ĐỘ NGỦ. Nhớ tắt sleep bằng powercfg trước mỗi phiên train dài.
+    tokens_per_second_3060: int = 22_000
 
 
 def chon_thiet_bi(uu_tien: str | None = None) -> str:

@@ -1,0 +1,38 @@
+# Luna Zero — bước 11,304 | val loss 3.0335
+# temp 0.9 top-p 0.92 top-k None phạt lặp 1.0
+
+======================================================================
+"Hà Nội là"
+----------------------------------------------------------------------
+Hà Nội là một trong những thành phố trung tâm lớn nhất của khu vực với vị trí đắt đỏ và tiềm năng du lịch hấp dẫn nhất, theo chia sẻ của nhà kinh tế thế giới. Trong số các quốc gia có mức thu nhập trung bình dân thuộc top đầu thế giới, chính vì thế mà có đến 70% sinh viên du học tại Hà Nội là nguồn thu nhập rất cao.
+Với tỷ suất sinh viên du học hàng năm cao, thời điểm lý tưởng cho học sinh, sinh viên quốc tế tìm kiếm việc làm, sống có mức lương cao ở Hà Nội là điều có thể cân nhắc.
+[distinct-1 0.770 | distinct-2 0.911 | distinct-4 0.991 | chuỗi lặp dài nhất 2 -> tự nhiên]
+
+======================================================================
+"Theo báo cáo mới nhất,"
+----------------------------------------------------------------------
+Theo báo cáo mới nhất, mới đây trong 1 tuần, hội tụ rất nhiều hoạt động văn hóa, giải trí sôi động và hấp dẫn. Nhân dân được nghỉ trưa từ 9 giờ 30 phút đến 7 giờ sáng ngày thứ Tư và thứ Sáu.
+Từ 8 giờ 30 phút đến 9 giờ sáng ngày thứ Tư và thứ Sáu
+14 giờ, Hội trường mở cửa.
+11 giờ 30 phút
+Tại hội trường mở cửa, các hoạt động kết hợp, thăm và làm việc tập trung tối đa nhất có thể, từ 7 giờ 30 phút đến 7 giờ 30 phút.
+Hội trường mở cửa cho khách tham quan cùng
+[distinct-1 0.655 | distinct-2 0.789 | distinct-4 0.925 | chuỗi lặp dài nhất 3 -> tự nhiên]
+
+======================================================================
+"Cách nấu phở bò ngon là"
+----------------------------------------------------------------------
+Cách nấu phở bò ngon là một trong những cách đơn giản nhất để làm cho món ăn thêm ngon và hấp dẫn hơn. Tuy nhiên, chúng ta có thể thử kết hợp cùng một số nguyên liệu khác như thịt bò, đậu, ngô, đậu nành, khoai, nấm… Tất cả những nguyên liệu này đều rất cần thiết. Dưới đây là cách làm cho thịt bò thật hấp dẫn.
+Thịt bò nấu thành những miếng vừa ăn
+Chuẩn bị một bát tô phở bò
+Bật bếp, đun nóng dầu ăn
+Trong thời gian đợi chờ, chúng ta cho chút nước vào và đổ vào trong chảo để thêm nước.
+[distinct-1 0.743 | distinct-2 0.963 | distinct-4 1.000 | chuỗi lặp dài nhất 1 -> LỆCH]
+
+======================================================================
+"Trong lĩnh vực công nghệ thông tin,"
+----------------------------------------------------------------------
+Trong lĩnh vực công nghệ thông tin, đại diện bệnh viện Đa khoa Mỹ Hưng cho biết thêm, bệnh viện đã điều trị thành công một số ca Covid-19 tại các bệnh viện.
+Bệnh viện Đa khoa Mỹ Hưng là địa chỉ y tế uy tín chuyên điều trị các bệnh về gan, đặc biệt là viêm gan C.
+[hết bài — model tự phát <eos>]
+[distinct-1 0.788 | distinct-2 0.892 | distinct-4 0.968 | chuỗi lặp dài nhất 2 -> tự nhiên]
