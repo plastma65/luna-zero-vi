@@ -288,3 +288,75 @@ def test_kieu_du_lieu_la_int64_cho_embedding(bin_gia: Path) -> None:
     """Token lưu uint16 nhưng nn.Embedding đòi int64. Quên ép kiểu là nổ lúc chạy."""
     x, y = BatchLoader(bin_gia, "train", block_size=8, device="cpu").lay_batch(2)
     assert x.dtype == torch.int64 and y.dtype == torch.int64
+
+
+# --- sinh văn bản từ checkpoint ---------------------------------------------
+def test_dung_lai_model_theo_cau_hinh_trong_checkpoint(tmp_path: Path) -> None:
+    """Phép đo chiều ngược: nạp trọng số PHẢI theo cấu hình đã lưu, không theo config
+    hiện tại.
+
+    Nếu ai sửa config.py sau khi train (đổi n_layer, d_model...), nạp theo config mới
+    sẽ lệch hình dạng và nổ — hoặc tệ hơn, khớp hình dạng nhưng sai ý nghĩa và model
+    sinh ra chữ rác mà không báo gì.
+    """
+    from dataclasses import asdict
+
+    goc = LunaZeroGPT(TINY)
+    blob = {"model": goc.state_dict(), "model_cfg": asdict(TINY)}
+
+    khac = replace(MODEL, n_layer=6, d_model=128)  # "config hiện tại" đã bị sửa
+    dung = replace(khac, **blob["model_cfg"])
+    assert dung == TINY
+
+    moi = LunaZeroGPT(dung)
+    moi.load_state_dict(blob["model"])  # không được ném
+    x = torch.randint(0, TINY.vocab_size, (1, 4))
+    goc.eval()
+    moi.eval()
+    with torch.no_grad():
+        assert torch.allclose(goc(x).logits, moi(x).logits, atol=1e-6)
+
+
+def test_nap_theo_config_hien_tai_se_no(tmp_path: Path) -> None:
+    """Chứng minh chiều ngược lại thật sự hỏng — nếu không thì test trên là trang trí."""
+    goc = LunaZeroGPT(TINY)
+    khac = replace(TINY, n_layer=6)
+    with pytest.raises(RuntimeError):
+        LunaZeroGPT(khac).load_state_dict(goc.state_dict())
+
+
+# --- lấy mẫu khi sinh -------------------------------------------------------
+def test_top_p_giu_it_nhat_mot_token(tiny_model: LunaZeroGPT) -> None:
+    """top_p rất nhỏ vẫn phải sinh được: nếu lọc sạch mọi token thì multinomial nổ."""
+    x = torch.zeros((1, 3), dtype=torch.long)
+    y = tiny_model.sinh(x, max_new_tokens=5, top_p=0.01)
+    assert y.shape == (1, 8)
+
+
+def test_phat_lap_ha_diem_token_da_xuat_hien(tiny_model: LunaZeroGPT) -> None:
+    """Phép đo chiều ngược cho phạt lặp: token đã có PHẢI bị hạ điểm, không phải nâng.
+
+    Chỗ này rất dễ sai: chia đều mọi logit cho hệ số phạt sẽ làm điểm ÂM to lên
+    (âm chia cho 1.15 thì gần 0 hơn) và biến hình phạt thành phần thưởng.
+    """
+    tiny_model.eval()
+    torch.manual_seed(0)
+    x = torch.randint(0, TINY.vocab_size, (1, 16))
+    with torch.no_grad():
+        goc = tiny_model(x).logits[:, -1, :].clone()
+
+    da_co = torch.unique(x[0])
+    diem = goc[0, da_co]
+    phat = 1.5
+    sau = torch.where(diem < 0, diem * phat, diem / phat)
+    assert torch.all(sau <= diem + 1e-6), "phạt lặp đang nâng điểm thay vì hạ"
+
+
+def test_sinh_khong_lap_vo_han_voi_phat_lap(tiny_model: LunaZeroGPT) -> None:
+    """Chỉ kiểm hành vi: có phạt lặp thì số token khác nhau không được ít hơn hẳn."""
+    torch.manual_seed(0)
+    x = torch.zeros((1, 2), dtype=torch.long)
+    khong_phat = tiny_model.sinh(x, max_new_tokens=60, top_p=0.9, phat_lap=1.0)
+    torch.manual_seed(0)
+    co_phat = tiny_model.sinh(x, max_new_tokens=60, top_p=0.9, phat_lap=1.3)
+    assert len(set(co_phat[0].tolist())) >= len(set(khong_phat[0].tolist()))

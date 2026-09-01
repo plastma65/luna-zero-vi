@@ -176,15 +176,47 @@ class LunaZeroGPT(nn.Module):
         max_new_tokens: int,
         temperature: float = 1.0,
         top_k: int | None = None,
+        top_p: float | None = None,
+        phat_lap: float = 1.0,
     ) -> torch.Tensor:
-        """Sinh token tự hồi quy. Cắt ngữ cảnh về block_size khi vượt."""
+        """Sinh token tự hồi quy. Cắt ngữ cảnh về block_size khi vượt.
+
+        `top_p` (nucleus): giữ nhóm token nhỏ nhất có tổng xác suất >= top_p. Tốt hơn
+        top_k vì kích thước nhóm co giãn theo độ chắc chắn của model — chỗ nào model
+        chắc thì chọn hẹp, chỗ nào mơ hồ thì mở rộng. top_k cố định 50 sẽ ép chọn trong
+        50 token kể cả khi model gần như chắc chắn, đó là một nguồn sinh vòng lặp.
+
+        `phat_lap` > 1 hạ điểm các token ĐÃ xuất hiện. Model 110M non rất hay rơi vào
+        vòng lặp kiểu "bảo đảm, bảo đảm, bảo đảm" — phạt lặp cắt vòng đó. Lưu ý: đây là
+        che triệu chứng, không phải chữa. Cách chữa thật là train thêm.
+        """
         self.eval()
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.cfg.block_size :]
-            logits = self(idx_cond).logits[:, -1, :] / max(temperature, 1e-8)
+            logits = self(idx_cond).logits[:, -1, :]
+
+            if phat_lap != 1.0:
+                for b in range(idx.size(0)):
+                    da_co = torch.unique(idx_cond[b])
+                    diem = logits[b, da_co]
+                    # Điểm âm phải NHÂN lên (càng âm hơn), điểm dương phải CHIA xuống.
+                    # Chia đều cho mọi điểm sẽ làm điểm âm to lên và thành thưởng lặp.
+                    logits[b, da_co] = torch.where(diem < 0, diem * phat_lap, diem / phat_lap)
+
+            logits = logits / max(temperature, 1e-8)
+
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < v[:, [-1]]] = -float("inf")
+
+            if top_p is not None:
+                sap, chi_so = torch.sort(logits, descending=True, dim=-1)
+                tich_luy = torch.cumsum(F.softmax(sap, dim=-1), dim=-1)
+                bo = tich_luy - F.softmax(sap, dim=-1) >= top_p
+                bo[:, 0] = False  # luôn giữ token có xác suất cao nhất
+                sap = sap.masked_fill(bo, -float("inf"))
+                logits = torch.full_like(logits, -float("inf")).scatter(1, chi_so, sap)
+
             probs = F.softmax(logits, dim=-1)
             idx = torch.cat([idx, torch.multinomial(probs, num_samples=1)], dim=1)
         return idx
