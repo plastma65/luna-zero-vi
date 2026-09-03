@@ -51,6 +51,27 @@ python scripts/train_tokenizer.py
 python scripts/do_nen.py
 ```
 
+## Nói chuyện với model
+
+```bash
+python scripts/giao_dien.py            # nạp checkpoint mới nhất, mở trình duyệt
+python scripts/giao_dien.py --gia-lap  # chưa có checkpoint: vẫn xem được giao diện
+python scripts/giao_dien.py --device cpu --port 8080
+```
+
+Giao diện chat cục bộ ở `http://127.0.0.1:8765`, tông xám cổ điển, chủ đề mặt trăng
+đúng nghĩa cái tên: lúc model đang tính, mây trắng trôi qua đĩa trăng; mây tan đúng
+lúc token đầu tiên về, rồi chữ chảy dần. Dưới mỗi câu trả lời có `distinct-2` và đánh
+giá LẶP / tự nhiên — cùng phép đo `sinh_thu.py` dùng, không phải cảm nhận.
+
+Chỉ dùng thư viện chuẩn (`http.server` + một file HTML tự chứa), không thêm dependency
+và không tải gì từ mạng — máy đang train có thể không có mạng.
+
+Chạy song song với vòng train được vì nó chỉ ĐỌC file checkpoint, nhưng nạp model lên
+GPU đang train tốn thêm ~0,5GB VRAM: dùng `--device cpu` nếu VRAM đang sát trần. Mặc
+định chỉ nghe ở `127.0.0.1` — giao diện không có xác thực, `--host 0.0.0.0` là mở cho
+cả mạng LAN chạy inference trên GPU của bạn.
+
 ## Ngắt giữa chừng rồi chạy tiếp
 
 Train được thiết kế để **ngắt bất cứ lúc nào**. Nhấn `Ctrl+C` một lần: vòng lặp kết thúc

@@ -31,3 +31,8 @@ __pycache__/
 
 # Tokenizer smoke là sản phẩm tạm, không phải artifact
 artifacts/tokenizer/smoke_bpe.json
+
+# Trạng thái train đang chạy: đổi mỗi 10 bước. Commit nó thì `git status` lúc nào cũng
+# bẩn và lịch sử đầy commit vô nghĩa. Nội dung suy ra được từ lich_su_train.jsonl.
+# Vẫn ĐỌC được bình thường — đó mới là mục đích của nó.
+artifacts/tien_do.json

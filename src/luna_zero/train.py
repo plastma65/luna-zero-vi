@@ -7,11 +7,13 @@ trong dữ liệu.
 
 from __future__ import annotations
 
+import json
 import math
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from luna_zero import config
 from luna_zero.checkpoint import CheckpointManager, NgatMemMai, TrainState
 from luna_zero.config import MODEL, TRAIN, ModelConfig, TrainConfig
 
@@ -35,6 +37,48 @@ def make_plan(model: ModelConfig = MODEL, train: TrainConfig = TRAIN) -> Trainin
     return TrainingPlan(
         tokens_per_step=tokens_per_step, total_steps=total_steps, estimated_hours=hours
     )
+
+
+def ghi_tien_do(
+    thu_muc: Path,
+    state: TrainState,
+    tong_buoc: int,
+    loss: float,
+    lr: float,
+    tps: float,
+    vram_gb: float,
+) -> None:
+    """Ghi tiến độ ra file text nhỏ trong repo, cạnh code — KHÔNG phải cạnh checkpoint.
+
+    Checkpoint thường được để ở ổ khác (SSD cho nhanh, hoặc ổ ngoài), nên ai không thấy
+    thư mục đó thì mù hoàn toàn về tiến độ. File này nằm trong repo, vài trăm byte,
+    ghi mỗi lần log — đủ để biết đang ở bước nào mà không phải mở checkpoint 1,3GB.
+
+    `lich_su_train.jsonl` giữ toàn bộ đường loss để vẽ lại ở Chặng 4. File .jsonl bị
+    .gitignore chặn (quy tắc chặn theo loại) nên nó không làm repo phình, đúng ý muốn.
+    """
+    thu_muc.mkdir(parents=True, exist_ok=True)
+    ban_ghi = {
+        "step": state.step,
+        "tong_buoc": tong_buoc,
+        "tien_do": round(state.step / tong_buoc, 4) if tong_buoc else 0.0,
+        "tokens_seen": state.tokens_seen,
+        "data_position": state.data_position,
+        "loss": round(loss, 4),
+        "best_val_loss": (
+            round(state.best_val_loss, 4) if state.best_val_loss != float("inf") else None
+        ),
+        "lr": lr,
+        "tokens_per_second": round(tps),
+        "vram_gb": round(vram_gb, 2),
+        "thoi_diem": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    # Ghi nguyên tử: tiến trình train có thể bị Ctrl+C đúng lúc đang ghi.
+    tmp = thu_muc / "tien_do.json.tmp"
+    tmp.write_text(json.dumps(ban_ghi, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(thu_muc / "tien_do.json")
+    with (thu_muc / "lich_su_train.jsonl").open("a", encoding="utf-8") as f:
+        f.write(json.dumps(ban_ghi, ensure_ascii=False) + "\n")
 
 
 def con_lai(plan: TrainingPlan, state: TrainState | None) -> tuple[int, float]:
@@ -210,6 +254,15 @@ def train_loop(
                     f"| lr {lr:.2e} | {tps / 1e3:.1f}k tok/s{vram}"
                     f" | còn {con_gio:.1f}h",
                     flush=True,
+                )
+                ghi_tien_do(
+                    config.ARTIFACT_DIR,
+                    state,
+                    tong_buoc,
+                    loss_gop,
+                    lr,
+                    tps,
+                    torch.cuda.max_memory_allocated() / 1024**3 if loai_tb == "cuda" else 0.0,
                 )
                 _dong_bo()
                 t0 = time.perf_counter()

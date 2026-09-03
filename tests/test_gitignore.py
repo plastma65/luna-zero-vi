@@ -26,6 +26,8 @@ PHAI_CHAN = [
     "artifacts/checkpoints/best.pt",
     "artifacts/checkpoints/manifest.json",
     "artifacts/tokenizer/smoke_bpe.json",
+    "artifacts/tien_do.json",
+    "artifacts/lich_su_train.jsonl",
     ".venv/Scripts/python.exe",
     "src/luna_zero/__pycache__/config.cpython-311.pyc",
     "model.safetensors",

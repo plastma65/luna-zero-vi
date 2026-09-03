@@ -6,6 +6,7 @@ Không nạp trọng số của ai. Mọi tham số ở đây khởi tạo ngẫ
 from __future__ import annotations
 
 import math
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 import torch
@@ -170,7 +171,7 @@ class LunaZeroGPT(nn.Module):
         return GPTOutput(logits=logits, loss=loss)
 
     @torch.no_grad()
-    def sinh(
+    def sinh_dan(
         self,
         idx: torch.Tensor,
         max_new_tokens: int,
@@ -179,8 +180,15 @@ class LunaZeroGPT(nn.Module):
         top_p: float | None = None,
         phat_lap: float = 1.0,
         dung_o_eos: bool = True,
-    ) -> torch.Tensor:
-        """Sinh token tự hồi quy. Cắt ngữ cảnh về block_size khi vượt.
+    ) -> Iterator[torch.Tensor]:
+        """Sinh token tự hồi quy, YIELD từng token vừa lấy mẫu, hình dạng (B, 1).
+
+        Đây là bản gốc; `sinh()` chỉ là vỏ gom kết quả. Giao diện chat cần thấy chữ hiện
+        dần nên phải có bản dòng chảy, nhưng CHÉP luật lấy mẫu ra thành bản thứ hai là
+        đúng cái sai đã gặp ở Luna cũ (một thứ tồn tại 3 bản rồi lệch nhau). Một bản duy
+        nhất, hai lối gọi.
+
+        Cắt ngữ cảnh về block_size khi vượt.
 
         `top_p` (nucleus): giữ nhóm token nhỏ nhất có tổng xác suất >= top_p. Tốt hơn
         top_k vì kích thước nhóm co giãn theo độ chắc chắn của model — chỗ nào model
@@ -227,8 +235,31 @@ class LunaZeroGPT(nn.Module):
             probs = F.softmax(logits, dim=-1)
             tiep = torch.multinomial(probs, num_samples=1)
             idx = torch.cat([idx, tiep], dim=1)
+            yield tiep
             if dung_o_eos and bool((tiep == EOS_ID).all()):
                 break
+
+    def sinh(
+        self,
+        idx: torch.Tensor,
+        max_new_tokens: int,
+        temperature: float = 1.0,
+        top_k: int | None = None,
+        top_p: float | None = None,
+        phat_lap: float = 1.0,
+        dung_o_eos: bool = True,
+    ) -> torch.Tensor:
+        """Gom toàn bộ chuỗi `sinh_dan` rồi trả về một lần. Xem `sinh_dan` để biết luật."""
+        for tiep in self.sinh_dan(
+            idx,
+            max_new_tokens,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            phat_lap=phat_lap,
+            dung_o_eos=dung_o_eos,
+        ):
+            idx = torch.cat([idx, tiep], dim=1)
         return idx
 
     def nhom_tham_so_optimizer(self, weight_decay: float) -> list[dict]:

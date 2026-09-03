@@ -48,10 +48,13 @@ src/luna_zero/
   model.py      đếm tham số + ước lượng VRAM (mạng thật ở Chặng 3)
   checkpoint.py lưu/khôi phục trạng thái train, xoay vòng, Ctrl+C mềm
   train.py      lập kế hoạch + tính phần còn lại (vòng lặp thật ở Chặng 3)
+  giao_dien/    chat cục bộ: may_chu.py (http.server, stream NDJSON) + trang.html
 scripts/
   download_corpus.py  tải corpus HF theo luồng
   train_tokenizer.py  train BPE 32k (có --smoke)
   do_nen.py           đo ký tự/token và so với mức ký tự
+  sinh_thu.py         sinh văn bản từ checkpoint ra terminal
+  giao_dien.py        mở giao diện chat (có --gia-lap khi chưa có checkpoint)
 tests/                round-trip, nén, ô nhiễm, hằng số, VRAM, smoke import
 ```
 
@@ -63,6 +66,14 @@ tests/                round-trip, nén, ô nhiễm, hằng số, VRAM, smoke imp
   normalizer vào tokenizer thì tokenizer hết lossless và test round-trip mất giá trị.
 * **`add_prefix_space=False`.** Bật lên là hỏng round-trip ngay.
 * **Không có token UNK trong `SPECIAL_TOKENS`.** Có UNK chỉ tạo chỗ mất dữ liệu âm thầm.
+* **Luật lấy mẫu chỉ có MỘT bản: `model.sinh_dan()`.** `sinh()` chỉ là vỏ gom kết
+  quả cho CLI, giao diện web thì lặp thẳng trên generator. Chép luật ra bản thứ hai
+  là lỗi số 6 dưới lớp vỏ mới, và vì nó nằm trong xác suất nên chỉ lộ ra dưới dạng
+  "giao diện viết khác terminal". `tests/test_giao_dien.py` khoá hai lối gọi lại
+  với nhau bằng cùng seed.
+* **Stream phải giải mã theo TIỀN TỐ, không theo từng token.** BPE mức byte cắt chữ
+  có dấu thành nhiều byte; decode token lẻ ra "\ufffd" giữa câu, trông như model
+  viết bậy. Xem `GiaiMaDan`.
 * **KHÔNG viết cứng `.cuda()` hay `device="cuda"` ở bất kỳ đâu.** Chọn thiết bị qua một
   chỗ duy nhất (`config.chon_thiet_bi()`), mặc định tự dò, ghi đè được bằng `--device`.
 

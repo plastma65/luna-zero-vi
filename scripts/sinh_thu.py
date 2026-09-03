@@ -32,15 +32,15 @@ def main() -> int:
     p.add_argument("--checkpoint-dir", type=Path, default=config.CHECKPOINT_DIR)
     p.add_argument("--tokenizer", type=Path, default=config.TOKENIZER_PATH)
     p.add_argument("--moi", action="append", default=None, help="câu mở đầu, lặp được")
-    p.add_argument("--so-token", type=int, default=120)
+    p.add_argument("--so-token", type=int, default=config.SINH.so_token)
     p.add_argument("--so-mau", type=int, default=1, help="số bản sinh cho mỗi câu mở đầu")
-    p.add_argument("--temperature", type=float, default=0.9)
-    p.add_argument("--top-k", type=int, default=None)
-    p.add_argument("--top-p", type=float, default=0.92, help="nucleus; 0 để tắt")
+    p.add_argument("--temperature", type=float, default=config.SINH.temperature)
+    p.add_argument("--top-k", type=int, default=config.SINH.top_k)
+    p.add_argument("--top-p", type=float, default=config.SINH.top_p, help="nucleus; 0 để tắt")
     p.add_argument(
         "--phat-lap",
         type=float,
-        default=1.05,
+        default=config.SINH.phat_lap,
         help="1.0 = tắt. 1.15 đè lặp quá tay (distinct-2 vượt mức người viết 0.853).",
     )
     p.add_argument(

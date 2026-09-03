@@ -1,0 +1,449 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Luna Zero</title>
+<link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="%23f0eee4"/><circle cx="23" cy="12" r="11" fill="%23f3f3f1"/></svg>' />
+<!--
+  Trang tự chứa: không CDN, không font ngoài, không script ngoài. Máy đang train có thể
+  không có mạng, và một trang phụ thuộc CDN sẽ hỏng đúng lúc đó.
+
+  Tông màu: xám cổ điển lấy từ chính mặt trăng — xám regolith cho nền, trắng ngà
+  cho đĩa trăng, than cho chữ. Tên Luna là mặt trăng, nên chủ đề không phải trang
+  trí thêm mà là chỗ bảng màu bắt nguồn. Riêng logo giữ nền trời đêm bên trong
+  huy hiệu tròn — ánh trăng chỉ đọc được khi có nền tối sau lưng, nhưng nó gói gọn
+  trong đường tròn nên không kéo cả trang vào bóng đêm.
+-->
+<style>
+  :root {
+    --nen: #f3f3f1;
+    --the: #fbfbfa;
+    --vien: #dcdcd7;
+    --vien-dam: #c4c4be;
+    --chu: #2b2b29;
+    --chu-mo: #767670;
+    --toi: #33363d;
+    --nhan: #43464e;
+    --canh-bao: #9a6b1f;
+    --loi: #a33b34;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --nen: #1b1c1e; --the: #232427; --vien: #34363a; --vien-dam: #43464b;
+      --chu: #e6e6e3; --chu-mo: #9a9a94; --toi: #2a2d34; --nhan: #c9cad0;
+      --canh-bao: #d9a441; --loi: #e08b83;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    /* Vân hố trăng: ba vệt xám chênh 2-3% độ sáng. Đậm hơn nữa là nền tranh giành
+       sự chú ý với văn bản — thứ người ta mở trang này để đọc. */
+    background:
+      radial-gradient(420px 420px at 12% 22%, rgba(0,0,0,.028), transparent 60%),
+      radial-gradient(260px 260px at 78% 12%, rgba(0,0,0,.022), transparent 60%),
+      radial-gradient(520px 520px at 88% 82%, rgba(0,0,0,.03), transparent 62%),
+      var(--nen);
+    background-attachment: fixed;
+    color: var(--chu);
+    font: 15px/1.65 "Segoe UI", system-ui, -apple-system, "Noto Sans", sans-serif;
+    display: flex; flex-direction: column;
+  }
+
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 22px; border-bottom: 1px solid var(--vien);
+    background: var(--the); position: sticky; top: 0; z-index: 5;
+  }
+  header h1 { font-size: 15.5px; margin: 0; letter-spacing: .06em; font-weight: 600; }
+  header .phu { font-size: 12px; color: var(--chu-mo); margin-top: 1px; }
+
+  /* --- HUY HIỆU ÁNH TRĂNG + MÂY --------------------------------------------
+     Một khối duy nhất cho cả logo đầu trang (nhỏ) lẫn ô "đang nghĩ" (to): kích cỡ
+     đổi bằng một biến --d, nên không có bản sao CSS thứ hai để lệch nhau.
+     Mây CHỈ chạy khi có class .dang-nghi — lúc rảnh trang không vẽ lại frame nào,
+     và máy này còn phải dành CPU cho vòng train. */
+  .trang-tron {
+    --d: 34px;
+    position: relative; width: var(--d); height: var(--d);
+    border-radius: 50%; overflow: hidden; flex: none;
+    background: radial-gradient(circle at 50% 120%, #565b66 0%, var(--toi) 58%, #2c2f36 100%);
+    border: 1px solid var(--vien-dam);
+  }
+  /* Đĩa trăng */
+  .trang-tron::before {
+    content: ""; position: absolute; left: 17%; top: 15%; width: 66%; height: 66%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #fffdf5 0%, #f0eee4 58%, #cbc8ba 100%);
+    box-shadow: 0 0 calc(var(--d) * .18) rgba(255, 252, 235, .55);
+    transition: box-shadow .6s ease;
+  }
+  /* Hố trăng — vẽ bằng gradient, không cần ảnh */
+  .trang-tron::after {
+    content: ""; position: absolute; left: 17%; top: 15%; width: 66%; height: 66%;
+    border-radius: 50%;
+    /* Hố lệch hẳn sang một bên: ba chấm cân đối đọc ra thành khuôn mặt, và một
+       gương mặt cười trên logo là thứ rất khó bỏ qua khi đã nhìn thấy. */
+    background:
+      radial-gradient(circle at 68% 30%, rgba(140,136,122,.34) 0 11%, transparent 12%),
+      radial-gradient(circle at 74% 58%, rgba(140,136,122,.26) 0 7%, transparent 8%),
+      radial-gradient(circle at 52% 78%, rgba(140,136,122,.22) 0 5%, transparent 6%);
+  }
+  .may { position: absolute; inset: -10% -60%; opacity: 0; transition: opacity .5s ease; }
+  .may i {
+    position: absolute; display: block; border-radius: 50%;
+    background: rgba(246, 246, 242, .9);
+    filter: blur(calc(var(--d) * .05));
+  }
+  .may i:nth-child(1) { width: 70%; height: 30%; left: -75%; top: 30%; }
+  .may i:nth-child(2) { width: 52%; height: 22%; left: -58%; top: 52%; opacity: .78; }
+  .may i:nth-child(3) { width: 84%; height: 26%; left: -95%; top: 12%; opacity: .6; }
+  .dang-nghi .may { opacity: 1; }
+  .dang-nghi .may i:nth-child(1) { animation: troi 3.2s linear infinite; }
+  .dang-nghi .may i:nth-child(2) { animation: troi 4.6s linear infinite .7s; }
+  .dang-nghi .may i:nth-child(3) { animation: troi 6.1s linear infinite 1.4s; }
+  .dang-nghi::before { animation: tho 3.2s ease-in-out infinite; }
+  @keyframes troi { from { transform: translateX(0); } to { transform: translateX(240%); } }
+  @keyframes tho {
+    0%, 100% { box-shadow: 0 0 calc(var(--d) * .18) rgba(255, 252, 235, .55); }
+    50%      { box-shadow: 0 0 calc(var(--d) * .45) rgba(255, 252, 235, .95); }
+  }
+  /* Người dùng đã xin bớt chuyển động thì mây đứng yên, chỉ còn phủ mờ. */
+  @media (prefers-reduced-motion: reduce) {
+    .dang-nghi::before, .dang-nghi .may i { animation: none; }
+    .dang-nghi .may { opacity: .55; }
+  }
+
+  main { flex: 1; overflow-y: auto; padding: 26px 22px 12px; }
+  .khung { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+  .loi-chao { color: var(--chu-mo); text-align: center; padding: 44px 0 10px; }
+  .loi-chao .trang-tron { --d: 104px; margin: 0 auto 20px; }
+  .loi-chao b { color: var(--chu); font-weight: 600; }
+  /* Dải pha trăng: năm đĩa nhỏ khuyết dần, vẽ bằng gradient nên không cần ảnh.
+     Nó cũng là thước đo trực quan duy nhất của chủ đề — không có chữ nào phải giải
+     thích "đây là mặt trăng". */
+  /* Câu mở đầu bấm được. Một dòng chữ giải thích "đây là model nền" thua bố cục
+     bong bóng chat — bố cục mời gọi hỏi đáp mạnh hơn chữ. Cho bấm một cái ra ngay
+     câu ĐÚNG DẠNG thì người dùng học bằng tay, không phải bằng cách đọc. */
+  .goi-y { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 18px 0 2px; }
+  .goi-y button {
+    background: var(--the); color: var(--chu); border: 1px solid var(--vien-dam);
+    border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 13px;
+    font-weight: 400; height: auto; cursor: pointer;
+  }
+  .goi-y button:hover { border-color: #8f8f88; filter: none; }
+
+  /* Nhắc khi câu nhập có dạng câu hỏi — đúng lúc hiểu nhầm xảy ra, không phải
+     một cảnh báo chung chung ở đầu trang mà ai cũng lướt qua. */
+  .nhac {
+    max-width: 760px; margin: 8px auto 0; font-size: 12.5px; color: var(--canh-bao);
+    display: none;
+  }
+  .nhac.hien { display: block; }
+
+  .pha { display: flex; gap: 9px; justify-content: center; margin: 18px 0 4px; }
+  .pha span {
+    width: 11px; height: 11px; border-radius: 50%;
+    border: 1px solid var(--vien-dam); background: var(--the);
+  }
+  .pha span:nth-child(2) { background: linear-gradient(90deg, var(--the) 50%, #cfccc2 50%); }
+  .pha span:nth-child(3) { background: linear-gradient(90deg, var(--the) 25%, #cfccc2 25%); }
+  .pha span:nth-child(4) { background: #cfccc2; }
+  .pha span:nth-child(5) { background: linear-gradient(90deg, #cfccc2 75%, var(--the) 75%); }
+
+  .tin { display: flex; gap: 12px; align-items: flex-start; }
+  .tin.toi { flex-direction: row-reverse; }
+  /* Cột: bong bóng và dòng chỉ số nằm CHỒNG lên nhau. Nhét chỉ số thẳng vào .tin
+     (vốn là flex ngang) sẽ đẩy nó thành một cột hẹp bên cạnh bong bóng. */
+  .cot { display: flex; flex-direction: column; max-width: 74%; }
+  .tin.toi .cot { align-items: flex-end; }
+  .bong {
+    padding: 11px 15px; border-radius: 14px;
+    white-space: pre-wrap; word-wrap: break-word;
+    border: 1px solid var(--vien);
+  }
+  .tin.toi .bong { background: #e8e8e4; border-radius: 14px 14px 4px 14px; }
+  .tin.luna .bong { background: var(--the); border-radius: 14px 14px 14px 4px; }
+  @media (prefers-color-scheme: dark) { .tin.toi .bong { background: #2c2e32; } }
+  .tin.toi .anh {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    background: var(--the); border: 1px solid var(--vien-dam);
+  }
+  .chi-so {
+    font-size: 11.5px; color: var(--chu-mo); margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chi-so.canh-bao { color: var(--canh-bao); }
+  .loi { color: var(--loi); }
+
+  /* Ô chờ: trăng to hơn hẳn avatar, vì đây là thứ người dùng nhìn suốt vài giây
+     đầu tiên. Nó bị gỡ khỏi DOM ngay khi chữ đầu về, nên không có trạng thái nào mà
+     vừa có mây vừa có chữ — hai thứ đó nói ngược nhau. */
+  .cho { display: flex; align-items: center; gap: 12px; color: var(--chu-mo); }
+  .cho .trang-tron { --d: 46px; }
+
+  /* Con trỏ nhấp nháy cuối dòng đang chảy — dấu hiệu "còn đang viết". */
+  .dang-viet .bong::after {
+    content: "▍"; color: var(--chu-mo); animation: nhay 1s steps(2) infinite;
+  }
+  @keyframes nhay { 50% { opacity: 0; } }
+
+  footer { border-top: 1px solid var(--vien); background: var(--the); padding: 14px 22px 18px; }
+  .soan { max-width: 760px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+  textarea {
+    flex: 1; resize: none; min-height: 46px; max-height: 180px;
+    background: var(--nen); color: var(--chu); border: 1px solid var(--vien-dam);
+    border-radius: 10px; padding: 12px 14px; font: inherit;
+  }
+  textarea:focus { outline: none; border-color: #8f8f88; background: var(--the); }
+  button {
+    background: var(--nhan); color: var(--the);
+    border: 0; border-radius: 10px; padding: 12px 22px; font: inherit; font-weight: 600;
+    cursor: pointer; height: 46px;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.15); }
+  button:disabled { opacity: .4; cursor: default; }
+  .tuy-chon { max-width: 760px; margin: 12px auto 0; font-size: 12.5px; color: var(--chu-mo); }
+  .tuy-chon summary { cursor: pointer; }
+  .hang { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; align-items: center; }
+  .hang label { display: flex; gap: 8px; align-items: center; }
+  input[type="range"] { width: 118px; accent-color: var(--nhan); }
+  .hang output { font-variant-numeric: tabular-nums; color: var(--chu); min-width: 34px; }
+</style>
+
+<header>
+  <div class="trang-tron" id="logo"><div class="may"><i></i><i></i><i></i></div></div>
+  <div>
+    <h1>Luna Zero</h1>
+    <div class="phu" id="trang-thai">đang hỏi máy chủ…</div>
+  </div>
+</header>
+
+<main>
+  <div class="khung" id="khung">
+    <div class="loi-chao" id="loi-chao">
+      <div class="trang-tron"><div class="may"><i></i><i></i><i></i></div></div>
+      <b>Mô hình tiếng Việt 110M, train từ số 0.</b><br />
+      Đây là <b>model nền</b>: nó viết tiếp một đoạn văn, <b>chưa được dạy trả lời câu
+      hỏi</b>. Gõ câu mở đầu, đừng gõ câu hỏi. Nó viết trôi chảy nhưng bịa kiến thức —
+      đọc để xem văn phong, đừng tin nội dung.
+      <div class="goi-y" id="goi-y">
+        <button type="button">Hà Nội là thủ đô của</button>
+        <button type="button">Theo báo cáo của Bộ Y tế,</button>
+        <button type="button">Công thức làm bánh mì gồm</button>
+        <button type="button">Sáng nay tại TP.HCM,</button>
+      </div>
+      <div class="pha"><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="soan">
+    <textarea id="o-nhap" placeholder="Hà Nội là…  (Enter để gửi, Shift+Enter xuống dòng)" autofocus></textarea>
+    <button id="nut">Gửi</button>
+  </div>
+  <div class="nhac" id="nhac">
+    Trông như một câu hỏi. Luna Zero là model nền — nó sẽ <b>viết tiếp</b> câu này chứ
+    không trả lời. Thử “Hà Nội là thủ đô của…” thay vì “Hà Nội là gì?”.
+  </div>
+  <details class="tuy-chon">
+    <summary>Tham số lấy mẫu</summary>
+    <div class="hang">
+      <label>temperature <input type="range" id="temp" min="0.1" max="1.5" step="0.05" /><output id="o-temp"></output></label>
+      <label>top-p <input type="range" id="topp" min="0.1" max="1" step="0.01" /><output id="o-topp"></output></label>
+      <label>phạt lặp <input type="range" id="lap" min="1" max="1.4" step="0.01" /><output id="o-lap"></output></label>
+      <label>số token <input type="range" id="ntok" min="20" max="500" step="10" /><output id="o-ntok"></output></label>
+    </div>
+  </details>
+</footer>
+
+<script>
+  const khung = document.getElementById("khung");
+  const oNhap = document.getElementById("o-nhap");
+  const nut = document.getElementById("nut");
+  const logo = document.getElementById("logo");
+  const thanhTrangThai = document.getElementById("trang-thai");
+  const truot = { temp: "temperature", topp: "top_p", lap: "phat_lap", ntok: "so_token" };
+  const MAY = '<div class="may"><i></i><i></i><i></i></div>';
+
+  let dangChay = false;
+
+  function gan(id, gt) {
+    const o = document.getElementById(id);
+    o.value = gt;
+    const ra = document.getElementById("o-" + id);
+    ra.value = gt;
+    o.addEventListener("input", () => (ra.value = o.value));
+  }
+
+  function themTin(vai, chu) {
+    document.getElementById("loi-chao")?.remove();
+    const tin = document.createElement("div");
+    tin.className = "tin " + vai;
+    const bong = document.createElement("div");
+    bong.className = "bong";
+    bong.textContent = chu;
+    const anh = document.createElement("div");
+    if (vai === "luna") {
+      anh.className = "trang-tron";
+      anh.innerHTML = MAY;
+    } else {
+      anh.className = "anh";
+    }
+    const cot = document.createElement("div");
+    cot.className = "cot";
+    cot.append(bong);
+    tin.append(anh, cot);
+    khung.append(tin);
+    cuonXuong();
+    return tin;
+  }
+
+  function cuonXuong() {
+    const m = document.querySelector("main");
+    m.scrollTop = m.scrollHeight;
+  }
+
+  // Bật/tắt mây. Mây chạy từ lúc gửi tới lúc CHỮ ĐẦU TIÊN về, không phải tới lúc xong:
+  // đó là ranh giới giữa "model đang tính" và "model đang viết", và người dùng cần
+  // thấy đúng ranh giới đó để biết máy còn sống.
+  function dangNghi(tin, bat) {
+    for (const m of tin.querySelectorAll(".trang-tron")) m.classList.toggle("dang-nghi", bat);
+    logo.classList.toggle("dang-nghi", bat);
+  }
+
+  function oCho() {
+    const d = document.createElement("div");
+    d.className = "cho";
+    d.innerHTML = '<div class="trang-tron">' + MAY + "</div><span>đang nghĩ…</span>";
+    return d;
+  }
+
+  async function gui() {
+    const moi = oNhap.value.trim();
+    if (!moi || dangChay) return;
+    dangChay = true;
+    nut.disabled = true;
+    oNhap.value = "";
+    themTin("toi", moi);
+
+    const tin = themTin("luna", "");
+    const bong = tin.querySelector(".bong");
+    const cho = oCho();
+    bong.append(cho);
+    dangNghi(tin, true);
+
+    const thamSo = { moi };
+    for (const [id, ten] of Object.entries(truot)) {
+      thamSo[ten] = Number(document.getElementById(id).value);
+    }
+
+    try {
+      const res = await fetch("/api/sinh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(thamSo),
+      });
+      if (!res.ok) {
+        const loi = await res.json().catch(() => ({ loi: res.status }));
+        throw new Error(loi.loi || res.status);
+      }
+
+      // NDJSON: mỗi dòng một JSON. Mẩu cuối của buffer có thể là dòng dở dang —
+      // cắt sai chỗ này thì thỉnh thoảng mất một chữ, và nó chỉ lộ ra ngẫu nhiên.
+      const doc = res.body.getReader();
+      const giaiMa = new TextDecoder();
+      let dem = "";
+      for (;;) {
+        const { value, done } = await doc.read();
+        if (done) break;
+        dem += giaiMa.decode(value, { stream: true });
+        const dong = dem.split("\n");
+        dem = dong.pop();
+        for (const d of dong) {
+          if (!d.trim()) continue;
+          const goi = JSON.parse(d);
+          if (goi.loai === "chu") {
+            if (cho.isConnected) {
+              cho.remove();
+              dangNghi(tin, false);
+              tin.classList.add("dang-viet");
+            }
+            bong.textContent += goi.chu;
+            cuonXuong();
+          } else if (goi.loai === "xong") {
+            xongTin(tin, goi);
+          } else if (goi.loai === "loi") {
+            throw new Error(goi.loi);
+          }
+        }
+      }
+    } catch (e) {
+      const bao = document.createElement("div");
+      bao.className = "chi-so loi";
+      bao.textContent = "Lỗi: " + e.message;
+      tin.querySelector(".cot").append(bao);
+    } finally {
+      cho.remove();
+      dangNghi(tin, false);
+      tin.classList.remove("dang-viet");
+      dangChay = false;
+      nut.disabled = false;
+      oNhap.focus();
+      cuonXuong();
+    }
+  }
+
+  function xongTin(tin, goi) {
+    const c = goi.chi_so;
+    const d = document.createElement("div");
+    d.className = "chi-so" + (c.danh_gia.startsWith("LẶP") ? " canh-bao" : "");
+    d.textContent =
+      `${goi.giay_cho}s tới chữ đầu · ${goi.giay_tong}s tổng · ` +
+      `distinct-2 ${c.distinct_2.toFixed(3)} → ${c.danh_gia}`;
+    tin.querySelector(".cot").append(d);
+  }
+
+  // Bấm gợi ý -> điền thẳng vào ô nhập, không gửi luôn: người dùng còn sửa được,
+  // và thấy rõ dạng câu mở đầu trông như thế nào.
+  document.getElementById("goi-y")?.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    oNhap.value = b.textContent.trim() + " ";
+    oNhap.focus();
+    capNhatNhac();
+  });
+
+  // Dấu hỏi, hoặc mở đầu bằng từ để hỏi — hai dạng hay bị gõ nhất.
+  const TU_HOI = /^\s*(ai|gì|sao|tại sao|vì sao|thế nào|khi nào|ở đâu|bao nhiêu|có phải|là gì)\b/i;
+  const nhac = document.getElementById("nhac");
+  function capNhatNhac() {
+    const t = oNhap.value.trim();
+    nhac.classList.toggle("hien", t.endsWith("?") || TU_HOI.test(t));
+  }
+  oNhap.addEventListener("input", capNhatNhac);
+
+  nut.addEventListener("click", gui);
+  oNhap.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      gui();
+    }
+  });
+
+  fetch("/api/trang_thai")
+    .then((r) => r.json())
+    .then((t) => {
+      gan("temp", t.mac_dinh.temperature);
+      gan("topp", t.mac_dinh.top_p);
+      gan("lap", t.mac_dinh.phat_lap);
+      gan("ntok", t.mac_dinh.so_token);
+      const phan = [t.che_do];
+      if (t.buoc !== null) phan.push("bước " + t.buoc.toLocaleString("vi-VN"));
+      if (t.val_loss !== null) phan.push("val loss " + t.val_loss.toFixed(4));
+      phan.push(t.thiet_bi);
+      thanhTrangThai.textContent = phan.join(" · ");
+    })
+    .catch(() => (thanhTrangThai.textContent = "không nối được máy chủ"));
+</script>

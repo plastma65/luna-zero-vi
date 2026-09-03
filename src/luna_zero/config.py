@@ -104,6 +104,25 @@ class TrainConfig:
     tokens_per_second_3060: int = 22_000
 
 
+# --- Sinh văn bản ----------------------------------------------------------
+@dataclass(frozen=True)
+class SinhConfig:
+    """Tham số lấy mẫu mặc định.
+
+    Trước đây chúng chỉ tồn tại dưới dạng default của argparse trong sinh_thu.py. Khi
+    giao diện chat cần đúng bộ tham số ấy thì đã có nguy cơ thành hai bản lệch nhau —
+    đúng lỗi số 6. Khai một chỗ, cả CLI lẫn web cùng import.
+    """
+
+    so_token: int = 120
+    temperature: float = 0.9
+    top_k: int | None = None
+    # nucleus; 0 để tắt
+    top_p: float = 0.92
+    # 1.0 = tắt. 1.15 đè lặp quá tay (distinct-2 vượt mức người viết).
+    phat_lap: float = 1.05
+
+
 def chon_thiet_bi(uu_tien: str | None = None) -> str:
     """Chọn thiết bị tính toán. ĐÂY LÀ CHỖ DUY NHẤT được phép nhắc tới "cuda".
 
@@ -122,3 +141,4 @@ TOKENIZER = TokenizerConfig()
 DATA = DataConfig()
 MODEL = ModelConfig()
 TRAIN = TrainConfig()
+SINH = SinhConfig()
