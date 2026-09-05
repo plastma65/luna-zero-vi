@@ -1,0 +1,32 @@
+# Luna Zero — bước 16,179 | val loss 2.9466
+# temp 0.9 top-p 0.92 top-k None phạt lặp 1.0
+
+======================================================================
+"Hà Nội là"
+----------------------------------------------------------------------
+Hà Nội là khu vực phát triển kinh tế xã hội quan trọng về cả kinh tế, văn hóa, xã hội và là trung tâm đô thị lớn nhất cả nước. Hai Hà Nội và Hải Phòng cũng là trung tâm kinh tế, văn hóa và giao thông lớn nhất cả nước. Với một vị trí địa lí thuận lợi, cửa ngõ kinh tế Thủ đô có vị trí thuận lợi về giao thông và địa lí rất thuận lợi cho việc di chuyển của các tỉnh thành phố. Một trong những nguyên nhân khiến Hà Nội trở thành thành phố năng động, hiện đại với không gian sống lý tưởng, là nhân tố
+[distinct-1 0.658 | distinct-2 0.867 | distinct-4 0.991 | chuỗi lặp dài nhất 2 -> tự nhiên]
+
+======================================================================
+"Theo báo cáo mới nhất,"
+----------------------------------------------------------------------
+Theo báo cáo mới nhất, năm 2019, Bộ Quốc phòng Mỹ đã tiết lộ một số thông tin liên quan đến một cuộc xung đột Syria có thể gây ra những hậu quả cực kỳ nghiêm trọng đối với nền kinh tế nước này.
+Đặc biệt là sau khi vụ việc xảy ra ngày 16/12/2018 tại tỉnh Pyeongchang, Hàn Quốc. Ủy ban các vấn đề xã hội cho biết Ủy ban này có kế hoạch tập trung giải quyết hậu quả vụ việc.
+Tuy nhiên, công ty tin rằng các nguồn tin của CNN chỉ có thể được cung cấp và chia sẻ cho các cơ quan tình báo của Mỹ
+[distinct-1 0.829 | distinct-2 0.973 | distinct-4 1.000 | chuỗi lặp dài nhất 1 -> tự nhiên]
+
+======================================================================
+"Cách nấu phở bò ngon là"
+----------------------------------------------------------------------
+Cách nấu phở bò ngon là bước rất quan trọng khi nấu phở bò
+Ngày đăng: 17/09/2020
+Thịt bò là một món ăn độc đáo của người dân Việt Nam nên rất được khách hàng yêu thích vì nó được chế biến từ thịt bò một nắng ăn với lẩu bò được chế biến theo cách của người nấu. Bạn nên chọn thịt bò ngon và chín có độ mềm, béo và không bị dai. Thịt bò được chế biến từ thịt bò một nắng nên với lớp nước lẩu thịt bò sẽ có độ mềm, thơm và không bị dai. Đây cũng chính là món ăn mà bạn nên có để nấu phở
+[distinct-1 0.561 | distinct-2 0.788 | distinct-4 0.937 | chuỗi lặp dài nhất 2 -> tự nhiên]
+
+======================================================================
+"Trong lĩnh vực công nghệ thông tin,"
+----------------------------------------------------------------------
+Trong lĩnh vực công nghệ thông tin, các phần mềm hợp tác đã và đang được khai thác trên toàn thế giới theo hình thức "phi tập trung".
+Sự phát triển của các ngành công nghiệp phần mềm (phần mềm trên mạng) là yếu tố tất yếu khi nói đến việc sử dụng các phương pháp tự động hóa để quản lý doanh nghiệp và thay vì "xây dựng", "gói gọn" như các phương pháp cũ.
+Bên cạnh đó, các phương pháp truyền thống như Big Data, Internet Box, Mobile Box… luôn được đưa vào các dịch vụ CNTT của Microsoft, và chứng chỉ mới là ứng dụng trong lĩnh vực
+[distinct-1 0.775 | distinct-2 0.945 | distinct-4 1.000 | chuỗi lặp dài nhất 1 -> tự nhiên]

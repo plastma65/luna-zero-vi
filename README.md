@@ -28,8 +28,8 @@ này, không phải lỗi huấn luyện.
 ## Trạng thái
 
 - [x] **Chặng 1 — Tokenizer**: khung dự án, BPE mức byte 32k, đo nén, tầng checkpoint, bộ test
-- [ ] Chặng 2 — Dữ liệu: tải 6GB, khử trùng lặp, token hoá ra `.bin`
-- [ ] Chặng 3 — Model + vòng lặp train
+- [x] Chặng 2 — Dữ liệu: tải 6GB, khử trùng lặp, token hoá ra `.bin`
+- [x] Chặng 3 — Model + vòng lặp train
 - [ ] Chặng 4 — Eval và sinh văn bản
 
 ## Bắt đầu
