@@ -24,6 +24,18 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Secrets / credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+.secrets/
+credentials.json
+
 # Ngoại lệ: các thứ NHỎ và QUÝ phải được commit
 !tests/fixtures/**
 !artifacts/tokenizer/*.json
