@@ -51,9 +51,20 @@ class ThamSoSinh:
         if "temperature" in du_lieu:
             sach = replace(sach, temperature=max(0.01, float(du_lieu["temperature"])))
         if "top_p" in du_lieu:
-            sach = replace(sach, top_p=float(du_lieu["top_p"]))
+            top_p = float(du_lieu["top_p"])
+            if not 0.0 <= top_p <= 1.0:
+                raise ValueError("top_p phải nằm trong [0, 1]")
+            sach = replace(sach, top_p=top_p)
+        if "top_k" in du_lieu:
+            top_k = int(du_lieu["top_k"])
+            if top_k < 1:
+                raise ValueError("top_k phải >= 1")
+            sach = replace(sach, top_k=top_k)
         if "phat_lap" in du_lieu:
-            sach = replace(sach, phat_lap=float(du_lieu["phat_lap"]))
+            phat_lap = float(du_lieu["phat_lap"])
+            if phat_lap < 1.0:
+                raise ValueError("phat_lap phải >= 1")
+            sach = replace(sach, phat_lap=phat_lap)
         return sach
 
 
@@ -148,6 +159,7 @@ def nguon_tu_checkpoint(
     from luna_zero.checkpoint import CheckpointManager
     from luna_zero.config import chon_thiet_bi
     from luna_zero.model import LunaZeroGPT
+    from luna_zero.pack import kiem_tokenizer_checkpoint
     from luna_zero.tokenizer import LunaTokenizer
 
     thiet_bi = chon_thiet_bi(device)
@@ -158,6 +170,7 @@ def nguon_tu_checkpoint(
     if duong_dan is None or not duong_dan.exists():
         raise FileNotFoundError(f"Không tìm thấy checkpoint trong {checkpoint_dir}")
     blob = torch.load(duong_dan, map_location="cpu", weights_only=False)
+    kiem_tokenizer_checkpoint(blob, tokenizer_path)
 
     # Dựng lại theo cấu hình ĐÃ LƯU, không theo config hiện tại — y như sinh_thu.py.
     cfg = _replace(config.MODEL, **blob.get("model_cfg", {}))
@@ -216,7 +229,7 @@ def _danh_gia(van_ban: str) -> dict[str, Any]:
     elif chi_so.distinct_2 > p90:
         nhan = f"đa dạng bất thường (trên p90={p90:.2f})"
     else:
-        nhan = "tự nhiên"
+        nhan = "mức lặp trong khoảng người viết"
     return {**asdict(chi_so), "danh_gia": nhan}
 
 

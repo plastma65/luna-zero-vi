@@ -14,82 +14,100 @@ Qwen3-4B bằng QLoRA). Luna Zero không thay thế Luna.
 | Kiến trúc | 12 lớp · d_model 768 · 12 head · block_size 1024 |
 | Từ vựng | BPE mức byte, 32.000 |
 | Dữ liệu train | 2,2 tỷ token (~6GB văn bản tiếng Việt) |
-| VRAM ước tính | ~4,5GB — vừa RTX 3060 12GB |
-| Thời gian | 3-5 ngày chạy liên tục |
+| Context | 1024 token |
+| Trọng số phát hành | ~441MB safetensors, inference-only |
 
 Đã cân nhắc và loại: 336M (4-7 tuần), 750M (không đủ VRAM), 4B (không khả thi).
 
 ## Kỳ vọng thực tế
 
-Ở quy mô 110M, model sẽ **viết tiếng Việt trôi chảy** nhưng **bịa kiến thức rất nhiều**,
-**không làm được toán**, và **không theo được chỉ dẫn phức tạp**. Đó là trần của quy mô
-này, không phải lỗi huấn luyện.
+Ở quy mô 110M, model có thể **viết tiếng Việt khá trôi chảy** nhưng **bịa kiến thức rất nhiều**,
+**không làm được toán đáng tin cậy**, và **không theo được chỉ dẫn phức tạp**. Không nên
+dùng model như một nguồn thông tin thực tế đáng tin cậy.
 
 ## Trạng thái
 
-- [x] **Chặng 1 — Tokenizer**: khung dự án, BPE mức byte 32k, đo nén, tầng checkpoint, bộ test
-- [x] Chặng 2 — Dữ liệu: tải 6GB, khử trùng lặp, token hoá ra `.bin`
-- [x] Chặng 3 — Model + vòng lặp train
-- [ ] Chặng 4 — Eval và sinh văn bản
+- [x] **Chặng 1 — Tokenizer**: Byte-level BPE 32k, đo nén, checkpoint, test
+- [x] **Chặng 2 — Dữ liệu**: tải corpus, dedup, split, token hoá `.bin`
+- [x] **Chặng 3 — Model + train**: GPT decoder-only ~110M, train đủ 2,2B token
+- [x] **Chặng 4 — Eval và sinh văn bản**: held-out final, generation final, release package
+
+### Ghi chú
+
+- Checkpoint phát hành: **step 33.569**
+- Human-authored final held-out: **100 document / 17.580 token**
+- Final NLL: **3.2195**
+- Final perplexity: **25.016**
+- Exact document overlap với raw train corpus: **0 / 2.414.008 document**
+- Final generation: **30 mẫu**, distinct-2 mean **0.948**, distinct-4 mean **0.994**
+- 4-gram lặp tối đa: **3**
+- Exact contamination guard không chứng minh được near-duplicate hoặc paraphrase
+- distinct-n chỉ mô tả repetition, **không phải** điểm factuality hay độ “tự nhiên”
+
+Trọng số inference-only:
+
+**[Lozens/Luna-Zero-110M — Hugging Face](https://huggingface.co/Lozens/Luna-Zero-110M)**
 
 ## Bắt đầu
 
 ```bash
-python -m venv .venv && .venv\Scripts\activate     # Windows
+python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
 
-# 1. Tải corpus (wikipedia không cần đăng nhập; culturax cần chấp nhận điều khoản trên HF)
+# Tải corpus
 python scripts/download_corpus.py --source wikipedia --target-gb 1.5
 
-# 2. Chạy thử tí hon trước khi đốt CPU thật
+# Smoke tokenizer
 python scripts/train_tokenizer.py --smoke --corpus-dir tests/fixtures
 
-# 3. Train tokenizer thật (~500MB text, vài chục phút CPU)
+# Train tokenizer
 python scripts/train_tokenizer.py
 
-# 4. Đo tỷ lệ nén — mục tiêu 2,5-3,0 ký tự/token
+# Đo tỷ lệ nén
 python scripts/do_nen.py
 ```
 
 ## Nói chuyện với model
 
 ```bash
-python scripts/giao_dien.py            # nạp checkpoint mới nhất, mở trình duyệt
-python scripts/giao_dien.py --gia-lap  # chưa có checkpoint: vẫn xem được giao diện
+python scripts/giao_dien.py
+python scripts/giao_dien.py --gia-lap
 python scripts/giao_dien.py --device cpu --port 8080
 ```
 
-Giao diện chat cục bộ ở `http://127.0.0.1:8765`, tông xám cổ điển, chủ đề mặt trăng
-đúng nghĩa cái tên: lúc model đang tính, mây trắng trôi qua đĩa trăng; mây tan đúng
-lúc token đầu tiên về, rồi chữ chảy dần. Dưới mỗi câu trả lời có `distinct-2` và đánh
-giá LẶP / tự nhiên — cùng phép đo `sinh_thu.py` dùng, không phải cảm nhận.
+Giao diện chat cục bộ ở `http://127.0.0.1:8765`. Dưới mỗi câu trả lời có metric repetition
+như `distinct-2`; metric này không được dùng như điểm “tự nhiên”, factuality hay chất lượng
+nội dung tổng quát.
 
-Chỉ dùng thư viện chuẩn (`http.server` + một file HTML tự chứa), không thêm dependency
-và không tải gì từ mạng — máy đang train có thể không có mạng.
+Sampling mặc định của bản phát hành:
 
-Chạy song song với vòng train được vì nó chỉ ĐỌC file checkpoint, nhưng nạp model lên
-GPU đang train tốn thêm ~0,5GB VRAM: dùng `--device cpu` nếu VRAM đang sát trần. Mặc
-định chỉ nghe ở `127.0.0.1` — giao diện không có xác thực, `--host 0.0.0.0` là mở cho
-cả mạng LAN chạy inference trên GPU của bạn.
-
-## Ngắt giữa chừng rồi chạy tiếp
-
-Train được thiết kế để **ngắt bất cứ lúc nào**. Nhấn `Ctrl+C` một lần: vòng lặp kết thúc
-bước đang chạy, lưu checkpoint rồi thoát. Chạy lại đúng lệnh cũ là nó tự tìm checkpoint
-mới nhất và tiếp tục đúng chỗ đã dừng — cả optimizer, scheduler lẫn vị trí trong corpus.
-
-Checkpoint lưu tự động mỗi `TRAIN.save_every_steps` bước (~36 phút), giữ 3 bản mới nhất
-cộng `best.pt`, tốn khoảng 5,3GB đĩa. Mất điện đột ngột thì mất tối đa phần công sức
-kể từ lần lưu gần nhất.
-
-**Quan trọng trên Windows**: tắt Sleep và Hibernate trong Power Options. Màn hình tắt thì
-không sao, nhưng máy ngủ sẽ huỷ CUDA context và tiến trình chết giữa chừng.
-
-```powershell
-powercfg /change standby-timeout-ac 0
-powercfg /change hibernate-timeout-ac 0
-powercfg /change monitor-timeout-ac 15   # màn hình vẫn tắt được, không ảnh hưởng GPU
+```json
+{
+  "so_token": 120,
+  "temperature": 0.9,
+  "top_k": null,
+  "top_p": 0.92,
+  "phat_lap": 1.05
+}
 ```
+
+## Checkpoint và release
+
+Checkpoint train chứa optimizer, RNG state và trạng thái resume nên không đưa lên GitHub
+hoặc Hugging Face release package.
+
+Bản Hugging Face chỉ chứa trọng số inference-only `model.safetensors`, tokenizer, config,
+model card và artifact eval cần thiết để kiểm chứng release.
+
+Package đã được kiểm theo vòng:
+
+```text
+local export -> Hugging Face upload -> download sạch -> CPU load + forward PASS
+```
+
+Kiến trúc Luna Zero là custom PyTorch, **không giả vờ tương thích trực tiếp với
+`transformers.AutoModel`**. Dùng source code Luna Zero để dựng `LunaZeroGPT`, nạp
+`model.safetensors` và tokenizer đi kèm.
 
 ## Kiểm tra
 
@@ -103,31 +121,26 @@ Repo này **chỉ chứa code và tài liệu**. Mọi thứ nặng hoặc tái 
 
 | Thứ | Ở đâu | Vì sao |
 |---|---|---|
-| Code, test, tài liệu | GitHub (repo này) | nhẹ, cần lịch sử thay đổi |
-| `artifacts/tokenizer/*.json` | GitHub | ~2MB, là *kết quả* của Chặng 1 và cần bản đúng để tái lập |
-| Corpus `data/raw/*.jsonl` | máy local | vài GB, tải lại được bằng `scripts/download_corpus.py` |
-| Token đã đóng gói `*.bin` | máy local | sinh lại từ corpus + tokenizer |
-| Checkpoint `artifacts/checkpoints/` | máy local | ~1,3GB mỗi bản |
-| **Trọng số cuối** | **Hugging Face Hub** | git không hợp để chứa file mô hình |
-
-Đừng dùng Git LFS cho checkpoint. LFS tính dung lượng theo *mọi phiên bản từng đẩy lên*,
-nên vài lần push checkpoint 1,3GB là hết hạn mức miễn phí và không xoá lùi được dễ dàng.
-Hugging Face Hub miễn phí cho repo model công khai và sinh ra để làm đúng việc này.
-
-`tests/test_gitignore.py` hỏi thẳng `git check-ignore` theo cả hai chiều — thứ phải chặn
-và thứ cấm chặn — nên một lần sửa `.gitignore` làm rơi mất dữ liệu quý sẽ đỏ ngay.
+| Code, test, tài liệu | GitHub | nhẹ, cần lịch sử thay đổi |
+| Tokenizer artifact | GitHub | cần bản đúng để tái lập |
+| Corpus `data/raw/*.jsonl` | máy local | vài GB |
+| Token đã đóng gói `*.bin` | máy local | sinh lại được |
+| Checkpoint train | máy local | chứa optimizer/RNG/resume state |
+| **Trọng số inference-only** | **Hugging Face Hub** | phù hợp cho model release |
 
 ## Nguồn dữ liệu
 
 | Nguồn | Cỡ | Gate |
 |---|---|---|
 | `wikimedia/wikipedia` `20231101.vi` | ~1,5GB | không |
-| `uonlp/CulturaX` subset `vi` | 55B token | **có** — đồng ý điều khoản trên trang dataset + `hf auth login` |
+| `uonlp/CulturaX` subset `vi` | 55B token | **có** — đồng ý điều khoản trên trang dataset |
 | `oscar-corpus/OSCAR-2301` vi | 68GB | có |
 | NewsCorpus (binhvq) | 53GB | không |
 
-Chỉ cần ~6GB, nên dữ liệu dư thừa nhiều lần.
+Dự án chỉ dùng khoảng 6GB văn bản tiếng Việt cho lần train này.
 
 ## Giấy phép
 
 [Apache License 2.0](LICENSE) — Copyright 2026 Lozens.
+
+Lưu ý: giấy phép của repo/model không thay thế điều khoản hoặc giấy phép của các dataset nguồn.

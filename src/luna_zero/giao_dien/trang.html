@@ -441,7 +441,7 @@
       gan("ntok", t.mac_dinh.so_token);
       const phan = [t.che_do];
       if (t.buoc !== null) phan.push("bước " + t.buoc.toLocaleString("vi-VN"));
-      if (t.val_loss !== null) phan.push("val loss " + t.val_loss.toFixed(4));
+      if (t.val_loss !== null) phan.push("best val loss " + t.val_loss.toFixed(4));
       phan.push(t.thiet_bi);
       thanhTrangThai.textContent = phan.join(" · ");
     })

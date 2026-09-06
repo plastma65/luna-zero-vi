@@ -237,3 +237,34 @@ def test_thieu_meta_bao_loi_ro_rang(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError, match="dong_goi"):
         kiem_tokenizer_khop(tmp_path, tmp_path / "t.json")
+
+
+def test_checkpoint_co_van_tay_tokenizer_thi_phai_khop(tmp_path: Path) -> None:
+    from luna_zero.pack import kiem_tokenizer_checkpoint, tokenizer_fingerprint
+
+    dung = tmp_path / "dung.json"
+    sai = tmp_path / "sai.json"
+    dung.write_text('{"tokenizer":"dung"}', encoding="utf-8")
+    sai.write_text('{"tokenizer":"sai"}', encoding="utf-8")
+    blob = {"tokenizer_fingerprint": tokenizer_fingerprint(dung)}
+
+    assert kiem_tokenizer_checkpoint(blob, dung, data_dir=tmp_path) == "checkpoint"
+    with pytest.raises(ValueError, match="KHÔNG KHỚP CHECKPOINT"):
+        kiem_tokenizer_checkpoint(blob, sai, data_dir=tmp_path)
+
+
+def test_checkpoint_cu_chi_duoc_fallback_khi_meta_chung_minh_duoc(tmp_path: Path) -> None:
+    from luna_zero.pack import kiem_tokenizer_checkpoint, tokenizer_fingerprint
+
+    tok = tmp_path / "tok.json"
+    tok.write_text('{"tokenizer":"cu"}', encoding="utf-8")
+    data_dir = tmp_path / "processed"
+    data_dir.mkdir()
+    (data_dir / "meta.json").write_text(
+        json.dumps({"tokenizer_fingerprint": tokenizer_fingerprint(tok)}), encoding="utf-8"
+    )
+    assert kiem_tokenizer_checkpoint({}, tok, data_dir=data_dir) == "data_meta"
+
+    (data_dir / "meta.json").unlink()
+    with pytest.raises(ValueError, match="không có vân tay tokenizer"):
+        kiem_tokenizer_checkpoint({}, tok, data_dir=data_dir)

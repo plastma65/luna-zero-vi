@@ -17,6 +17,7 @@ from pathlib import Path
 import numpy as np
 
 from luna_zero import config
+from luna_zero.data import doc_hash
 from luna_zero.tokenizer import LunaTokenizer
 
 
@@ -58,14 +59,36 @@ def kiem_tokenizer_khop(out_dir: Path, tokenizer_path: Path) -> None:
         )
 
 
-def doc_hash(text: str) -> str:
-    """Vân tay của một document, dùng để phát hiện trùng nguyên văn.
+def kiem_tokenizer_checkpoint(
+    blob: dict[str, object],
+    tokenizer_path: Path,
+    data_dir: Path | None = None,
+) -> str:
+    """Xác minh tokenizer khi nạp checkpoint; vocab_size một mình không đủ.
 
-    Băm trên chuỗi ĐÃ chuẩn hoá NFC (data.normalize_text đã chạy ở bước tải), nên hai
-    document chỉ khác nhau ở cách mã hoá dấu vẫn cho cùng vân tay. Cắt 16 byte đầu:
-    với 2 triệu document, xác suất đụng độ ngẫu nhiên nhỏ hơn 10^-20.
+    Checkpoint mới mang fingerprint trực tiếp. Với checkpoint cũ đã train trước khi
+    trường này tồn tại, chỉ cho phép fallback qua `data/processed/meta.json` đã được
+    đóng gói bằng đúng tokenizer. Không có cả hai bằng chứng thì từ chối suy đoán.
     """
-    return hashlib.blake2b(text.encode("utf-8"), digest_size=16).hexdigest()
+    hien_tai = tokenizer_fingerprint(tokenizer_path)
+    da_ghi = blob.get("tokenizer_fingerprint")
+    if isinstance(da_ghi, str):
+        if da_ghi != hien_tai:
+            raise ValueError(
+                "TOKENIZER KHÔNG KHỚP CHECKPOINT.\n"
+                f"  checkpoint : {da_ghi}\n"
+                f"  tokenizer  : {hien_tai}"
+            )
+        return "checkpoint"
+
+    data_dir = Path(data_dir) if data_dir is not None else config.PROCESSED_DIR
+    if (data_dir / "meta.json").exists():
+        kiem_tokenizer_khop(data_dir, tokenizer_path)
+        return "data_meta"
+    raise ValueError(
+        "Checkpoint cũ không có vân tay tokenizer và cũng không có data/processed/meta.json "
+        "để đối chiếu. Không thể chứng minh tokenizer hiện tại là bản đã dùng để train."
+    )
 
 
 def chon_split(text: str, val_ratio: float = config.DATA.val_ratio) -> str:

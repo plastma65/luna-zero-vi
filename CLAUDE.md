@@ -91,9 +91,10 @@ tests/                round-trip, nén, ô nhiễm, hằng số, VRAM, smoke imp
 Máy không chạy liên tục 4 ngày được, nên vòng lặp train ở Chặng 3 **bắt buộc** dùng
 `CheckpointManager`. Bốn quy tắc, mỗi cái đã có test và đã thử phá:
 
-1. Checkpoint phải chứa **model + optimizer + scheduler + `data_position` + RNG state**.
-   Thiếu optimizer thì loss vọt lên khi chạy tiếp; thiếu `data_position` thì mô hình đọc
-   lại từ đầu corpus mãi mãi. Cả hai đều **không ném lỗi** — đó là lý do phải có test.
+1. Checkpoint phải chứa **model + optimizer + `data_position` + RNG state**. Luna Zero
+   không có scheduler object: LR là hàm thuần của `step`, nên khôi phục `step` là khôi
+   phục lịch LR. Thiếu optimizer thì loss vọt lên khi chạy tiếp; thiếu `data_position`
+   thì mô hình đọc lại từ đầu corpus. Các lỗi này đều có thể không ném lỗi.
 2. Ghi ra `.tmp` rồi `os.replace`. Không bao giờ ghi thẳng lên file cuối.
 3. `load_latest()` lùi về bản cũ hơn nếu bản mới nhất hỏng. Đừng bỏ cơ chế này.
 4. Xoay vòng theo `TRAIN.max_checkpoints_keep`; `best.pt` không bị xoay vòng đụng tới.

@@ -39,9 +39,10 @@ def khoang_nguoi_viet(n_tu: int) -> tuple[float, float, float]:
     return BANG_NGUOI_VIET[max(BANG_NGUOI_VIET)]
 
 
-def trong_khoang_tu_nhien(d2: float, n_tu: int = 120) -> bool:
-    """distinct-2 có nằm trong khoảng p10-p90 của văn bản người viết CÙNG ĐỘ DÀI không.
+def trong_khoang_lap_nguoi_viet(d2: float, n_tu: int = 120) -> bool:
+    """distinct-2 có nằm trong khoảng p10-p90 của người viết CÙNG ĐỘ DÀI không.
 
+    Đây CHỈ là phép đo lặp, không phải điểm "tự nhiên" hay chất lượng tổng thể.
     Hai chiều đều bị bắt:
       thấp hơn p10 -> model đang lặp (chưa train đủ, hoặc lấy mẫu quá hẹp)
       cao hơn  p90 -> đa dạng bất thường; thường là phạt lặp quá tay. Văn bản thật CÓ
@@ -49,6 +50,11 @@ def trong_khoang_tu_nhien(d2: float, n_tu: int = 120) -> bool:
     """
     p10, _, p90 = khoang_nguoi_viet(n_tu)
     return p10 <= d2 <= p90
+
+
+def trong_khoang_tu_nhien(d2: float, n_tu: int = 120) -> bool:
+    """Tên cũ để tương thích; dùng `trong_khoang_lap_nguoi_viet` cho code mới."""
+    return trong_khoang_lap_nguoi_viet(d2, n_tu)
 
 
 def _ngram(tokens: list[str], n: int) -> list[tuple[str, ...]]:
@@ -66,7 +72,7 @@ class DoLap:
     def __str__(self) -> str:
         return (
             f"distinct-1 {self.distinct_1:.3f} | distinct-2 {self.distinct_2:.3f} "
-            f"| distinct-4 {self.distinct_4:.3f} | chuỗi lặp dài nhất {self.lap_dai_nhat}"
+            f"| distinct-4 {self.distinct_4:.3f} | 4-gram lặp nhiều nhất {self.lap_dai_nhat} lần"
         )
 
 
@@ -74,8 +80,8 @@ def do_lap(van_ban: str) -> DoLap:
     """distinct-n = tỷ lệ n-gram KHÁC NHAU trên tổng số n-gram.
 
     Càng gần 1 càng ít lặp. Văn bản tiếng Việt tự nhiên thường có distinct-2 quanh
-    0,85-0,95; dưới 0,6 là đã lặp nặng. `lap_dai_nhat` bắt kiểu suy thoái tệ nhất:
-    một cụm bị nhắc lại nguyên văn nhiều lần liền nhau.
+    0,85-0,95; dưới 0,6 là đã lặp nặng. `lap_dai_nhat` là tên field lịch sử; giá trị
+    thật của nó là SỐ LẦN xuất hiện của 4-gram phổ biến nhất, không phải độ dài chuỗi.
     """
     tokens = van_ban.split()
     if not tokens:

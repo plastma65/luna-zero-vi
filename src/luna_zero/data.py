@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import unicodedata
@@ -26,6 +27,16 @@ def normalize_text(text: str) -> str:
     text = _CONTROL_CHARS.sub("", text)
     text = _MULTI_BLANK.sub("\n\n", text)
     return text.strip()
+
+
+def doc_hash(text: str) -> str:
+    """Vân tay document sau NFC, dùng chung cho split và kiểm contamination.
+
+    Hash ở tầng dữ liệu để mọi phép chia/kiểm eval dùng đúng một định nghĩa. Việc
+    chuẩn hoá ngay trong hàm làm NFD/NFC không thể lách qua kiểm tra trùng.
+    """
+    clean = normalize_text(text)
+    return hashlib.blake2b(clean.encode("utf-8"), digest_size=16).hexdigest()
 
 
 def iter_jsonl_texts(path: Path, field: str = "text") -> Iterator[str]:

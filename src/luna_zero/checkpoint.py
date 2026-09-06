@@ -4,7 +4,8 @@ Bốn điều dễ làm sai, mỗi cái đều làm hỏng lần train mà khôn
 
 1. **Chỉ lưu trọng số.** Optimizer AdamW mang hai trạng thái động lượng cho từng tham
    số; mất chúng thì khi chạy tiếp, mô hình bị đá ra khỏi quỹ đạo đang hội tụ và loss
-   vọt lên. Phải lưu cả optimizer, scheduler và bước hiện tại.
+   vọt lên. Phải lưu optimizer, bước hiện tại và RNG. Lịch LR của Luna Zero là hàm
+   thuần của `step`, nên không có scheduler object riêng để lưu.
 2. **Không lưu vị trí dữ liệu.** Chạy tiếp mà đọc lại từ đầu corpus thì mô hình học
    thuộc phần đầu và không bao giờ thấy phần cuối. Đây là lỗi im lặng nhất.
 3. **Ghi đè trực tiếp lên file cũ.** Cúp điện đúng lúc đang ghi là mất luôn checkpoint
@@ -36,8 +37,8 @@ TMP_SUFFIX = ".tmp"
 class TrainState:
     """Mọi thứ cần để chạy tiếp đúng chỗ đã dừng, trừ tensor.
 
-    `data_position` là số token đã tiêu thụ tính từ đầu corpus — không phải số batch,
-    vì batch size có thể đổi giữa hai lần chạy còn con trỏ token thì không.
+    `data_position` là số CỬA SỔ loader đã tiêu thụ trong hoán vị tất định. Nó phải
+    dùng đúng cùng quy ước với `BatchLoader.vi_tri`; không phải số token.
     """
 
     step: int
@@ -62,9 +63,40 @@ def _torch_save(obj: Any, path: Path) -> None:
 def _torch_load(path: Path) -> Any:
     import torch
 
-    # weights_only=False vì payload có cả state của optimizer/scheduler, không chỉ tensor.
+    # weights_only=False vì payload có cả optimizer/RNG, không chỉ tensor.
     # An toàn ở đây: file do chính máy này ghi ra, không phải tải từ internet.
     return torch.load(path, map_location="cpu", weights_only=False)
+
+
+def lay_rng_state(loai_thiet_bi: str) -> dict[str, Any]:
+    """Chụp RNG cần để resume không đổi quỹ đạo khi code có phép toán ngẫu nhiên."""
+    import random
+
+    import numpy as np
+    import torch
+
+    state: dict[str, Any] = {
+        "python": random.getstate(),
+        "numpy": np.random.get_state(),
+        "torch": torch.get_rng_state(),
+    }
+    if loai_thiet_bi == "cuda":
+        state["torch_device"] = torch.cuda.get_rng_state_all()
+    return state
+
+
+def khoi_phuc_rng_state(state: dict[str, Any], loai_thiet_bi: str) -> None:
+    """Khôi phục đúng trạng thái đã chụp bởi :func:`lay_rng_state`."""
+    import random
+
+    import numpy as np
+    import torch
+
+    random.setstate(state["python"])
+    np.random.set_state(state["numpy"])
+    torch.set_rng_state(state["torch"])
+    if loai_thiet_bi == "cuda" and "torch_device" in state:
+        torch.cuda.set_rng_state_all(state["torch_device"])
 
 
 class CheckpointManager:
@@ -122,7 +154,7 @@ class CheckpointManager:
 
     # --- lưu ---------------------------------------------------------------
     def save(self, state: TrainState, payload: dict[str, Any], is_best: bool = False) -> Path:
-        """Ghi một checkpoint. `payload` chứa state_dict của model/optimizer/scheduler/RNG."""
+        """Ghi một checkpoint. `payload` chứa state_dict của model/optimizer và RNG."""
         name = f"ckpt_step_{state.step:09d}.pt"
         final = self.directory / name
         tmp = final.with_suffix(".pt" + TMP_SUFFIX)
@@ -137,7 +169,7 @@ class CheckpointManager:
         os.replace(tmp, final)
 
         entries = [e for e in self._read_manifest() if e["step"] != state.step]
-        entries.append({"step": state.step, "file": name, "val_loss": state.best_val_loss})
+        entries.append({"step": state.step, "file": name, "best_val_loss": state.best_val_loss})
         entries.sort(key=lambda e: e["step"])
         self._write_manifest(entries)
 

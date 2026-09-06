@@ -20,3 +20,6 @@ huggingface_hub>=0.24
 ruff>=0.6
 black>=24.8
 pytest>=8.3
+
+# Chang 4 - export inference-only weights in a Hugging Face safe format.
+safetensors>=0.4,<1.0

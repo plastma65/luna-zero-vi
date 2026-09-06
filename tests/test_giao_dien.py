@@ -246,3 +246,12 @@ def test_van_tu_chua_khong_goi_ra_ngoai() -> None:
     assert 'src="http' not in trang
     assert 'href="http' not in trang
     assert "@import" not in trang
+
+
+def test_tham_so_sinh_chan_mien_gia_tri_nguy_hiem() -> None:
+    with pytest.raises(ValueError, match="top_p"):
+        ThamSoSinh.tu_json({"top_p": 1.2})
+    with pytest.raises(ValueError, match="top_k"):
+        ThamSoSinh.tu_json({"top_k": 0})
+    with pytest.raises(ValueError, match="phat_lap"):
+        ThamSoSinh.tu_json({"phat_lap": 0.5})

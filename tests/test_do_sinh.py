@@ -82,3 +82,10 @@ def test_da_dang_qua_muc_CUNG_bi_danh_dau_lech() -> None:
 
     assert not trong_khoang_tu_nhien(1.0, n_tu=5_000)
     assert not trong_khoang_tu_nhien(0.99, n_tu=400)
+
+
+def test_ten_hien_thi_khong_noi_sai_day_la_do_dai_chuoi() -> None:
+    """Field lịch sử giữ tương thích, nhưng output không được diễn giải sai ý nghĩa."""
+    s = str(do_lap("a b c d a b c d a b c d"))
+    assert "4-gram lặp nhiều nhất" in s
+    assert "chuỗi lặp dài nhất" not in s

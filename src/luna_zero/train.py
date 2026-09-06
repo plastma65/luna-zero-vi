@@ -14,7 +14,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from luna_zero import config
-from luna_zero.checkpoint import CheckpointManager, NgatMemMai, TrainState
+from luna_zero.checkpoint import (
+    CheckpointManager,
+    NgatMemMai,
+    TrainState,
+    khoi_phuc_rng_state,
+    lay_rng_state,
+)
 from luna_zero.config import MODEL, TRAIN, ModelConfig, TrainConfig
 
 
@@ -125,7 +131,7 @@ def train_loop(
     from luna_zero.config import chon_thiet_bi
     from luna_zero.loader import loader_cho_config
     from luna_zero.model import LunaZeroGPT, format_params
-    from luna_zero.pack import kiem_tokenizer_khop
+    from luna_zero.pack import kiem_tokenizer_khop, tokenizer_fingerprint
 
     # Chặn ngay ở khởi động, trước khi đốt bốn ngày: token id trong .bin phải do đúng
     # tokenizer này sinh ra. Sai thì loss vẫn giảm đẹp và chỉ lộ khi sinh văn bản.
@@ -161,6 +167,11 @@ def train_loop(
         state, payload = da_co
         model.load_state_dict(payload["model"])
         optimizer.load_state_dict(payload["optimizer"])
+        rng = payload.get("rng_state")
+        if isinstance(rng, dict):
+            khoi_phuc_rng_state(rng, loai_tb)
+        else:
+            print("[checkpoint] bản cũ không có RNG state; lần resume này không thể tái lập RNG.")
         if dung_amp and payload.get("scaler"):
             scaler.load_state_dict(payload["scaler"])
         print(f"Trạng thái: chạy tiếp từ bước {state.step:,}")
@@ -283,6 +294,8 @@ def train_loop(
                     "optimizer": optimizer.state_dict(),
                     "scaler": scaler.state_dict() if dung_amp else None,
                     "model_cfg": model_cfg.__dict__,
+                    "tokenizer_fingerprint": tokenizer_fingerprint(tokenizer_path),
+                    "rng_state": lay_rng_state(loai_tb),
                 }
                 manager.save(state, payload, is_best=tot_hon)
                 print(f"  val loss {val_loss:.4f}{' (tốt nhất)' if tot_hon else ''} — đã lưu")

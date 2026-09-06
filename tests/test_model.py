@@ -428,3 +428,13 @@ def test_dat_lai_vi_tri_cho_cung_lat_du_lieu(bin_gia: Path) -> None:
     ld.dat_vi_tri(0)
     lan_3 = [ld.lay_batch(2)[0] for _ in range(3)]
     assert all(torch.equal(a, b) for a, b in zip(lan_1, lan_3, strict=True))
+
+
+def test_sinh_chan_tham_so_lay_mau_khong_hop_le(tiny_model: LunaZeroGPT) -> None:
+    x = torch.zeros((1, 2), dtype=torch.long)
+    with pytest.raises(ValueError, match="top_k"):
+        tiny_model.sinh(x, max_new_tokens=1, top_k=0)
+    with pytest.raises(ValueError, match="top_p"):
+        tiny_model.sinh(x, max_new_tokens=1, top_p=0.0)
+    with pytest.raises(ValueError, match="phat_lap"):
+        tiny_model.sinh(x, max_new_tokens=1, phat_lap=0.5)

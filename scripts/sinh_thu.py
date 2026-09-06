@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from luna_zero import config  # noqa: E402
 from luna_zero.checkpoint import CheckpointManager  # noqa: E402
 from luna_zero.do_sinh import do_lap, khoang_nguoi_viet  # noqa: E402
+from luna_zero.pack import kiem_tokenizer_checkpoint  # noqa: E402
 from luna_zero.tokenizer import LunaTokenizer  # noqa: E402
 
 MOI_MAC_DINH = [
@@ -71,6 +72,7 @@ def main() -> int:
         print(f"Không tìm thấy checkpoint trong {args.checkpoint_dir}", file=sys.stderr)
         return 1
     blob = torch.load(duong_dan, map_location="cpu", weights_only=False)
+    kiem_tokenizer_checkpoint(blob, args.tokenizer)
 
     # Dựng lại model theo ĐÚNG cấu hình đã lưu trong checkpoint, không theo config hiện
     # tại. Nếu ai sửa config.py sau khi train, nạp theo config mới sẽ lệch hình dạng —
@@ -96,7 +98,7 @@ def main() -> int:
     )
 
     dong: list[str] = [
-        f"# Luna Zero — bước {buoc:,} | val loss {val:.4f}",
+        f"# Luna Zero — bước {buoc:,} | best val loss {val:.4f}",
         f"# temp {args.temperature} top-p {args.top_p} top-k {args.top_k} "
         f"phạt lặp {args.phat_lap}",
     ]
@@ -131,7 +133,7 @@ def main() -> int:
             elif chi_so.distinct_2 > p90:
                 danh_gia = f"ĐA DẠNG BẤT THƯỜNG (trên p90={p90:.2f})"
             else:
-                danh_gia = "tự nhiên"
+                danh_gia = "mức lặp trong khoảng người viết"
             khoi = f"\n{'=' * 70}\n{nhan}\n{'-' * 70}\n{van_ban}" f"\n[{chi_so} -> {danh_gia}]"
             print(khoi)
             dong.append(khoi)

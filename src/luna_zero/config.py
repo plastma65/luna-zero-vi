@@ -16,10 +16,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
+EVAL_DIR = DATA_DIR / "eval"
+FINAL_EVAL_PATH = EVAL_DIR / "final.jsonl"
+FINAL_HUMAN_EVAL_PATH = EVAL_DIR / "final_human.jsonl"
+FINAL_HUMAN_META_PATH = EVAL_DIR / "final_human.meta.json"
+GEN_DIAGNOSTIC_PATH = EVAL_DIR / "generation_diagnostic.json"
+GEN_FINAL_PATH = EVAL_DIR / "generation_final.json"
 ARTIFACT_DIR = PROJECT_ROOT / "artifacts"
 TOKENIZER_DIR = ARTIFACT_DIR / "tokenizer"
 CHECKPOINT_DIR = ARTIFACT_DIR / "checkpoints"
 TOKENIZER_PATH = TOKENIZER_DIR / "luna_zero_bpe.json"
+RELEASE_DIR = ARTIFACT_DIR / "release"
+STAGE4_REPORT_PATH = ARTIFACT_DIR / "eval" / "stage4_report.json"
+STAGE4_REPORT_MD_PATH = ARTIFACT_DIR / "eval" / "STAGE4_REPORT.md"
 
 
 # --- Tokenizer -------------------------------------------------------------
@@ -104,7 +113,55 @@ class TrainConfig:
     tokens_per_second_3060: int = 22_000
 
 
+# --- Eval ------------------------------------------------------------------
+@dataclass(frozen=True)
+class EvalConfig:
+    """Mặc định cho final eval độc lập với tập validation dùng chọn checkpoint."""
+
+    batch_size: int = 4
+    smoke_docs: int = 4
+    smoke_windows: int = 2
+    max_overlap_examples: int = 5
+
+
 # --- Sinh văn bản ----------------------------------------------------------
+@dataclass(frozen=True)
+class SinhEvalConfig:
+    """Cấu hình benchmark sinh; final khóa trên profile mặc định đã chọn."""
+
+    seeds: tuple[int, ...] = (17, 29, 43)
+    final_checkpoint_step: int = 33_569
+    final_checkpoint_fingerprint: str = "1d6444caa222957a0fc266a9c511fe8e"
+    final_profile_name: str = "mac_dinh"
+    # Fingerprint semantic của generation_final.json. Đổi suite phải là hành động
+    # chủ ý và cập nhật khóa này; sửa prompt âm thầm sẽ bị từ chối trước khi sinh.
+    final_suite_fingerprint: str = "fe9ce37b768210b25053f96a4fee06c1"
+    smoke_prompts: int = 2
+    smoke_seeds: int = 1
+    smoke_tokens: int = 24
+    legacy_temperature: float = 0.8
+    legacy_top_k: int = 50
+    legacy_top_p: float | None = None
+    legacy_phat_lap: float = 1.0
+
+
+@dataclass(frozen=True)
+class ReleaseConfig:
+    """Tên artifact và schema của gói inference/public release."""
+
+    schema_version: int = 1
+    package_dir_name: str = "luna-zero-110m"
+    weights_name: str = "model.safetensors"
+    model_config_name: str = "config.json"
+    generation_config_name: str = "generation_config.json"
+    model_card_name: str = "README.md"
+    tokenizer_name: str = "luna_zero_bpe.json"
+    tokenizer_meta_name: str = "luna_zero_bpe.meta.json"
+    stage4_report_name: str = "stage4_report.json"
+    stage4_report_md_name: str = "STAGE4_REPORT.md"
+    final_generation_name: str = "generation_final.json"
+
+
 @dataclass(frozen=True)
 class SinhConfig:
     """Tham số lấy mẫu mặc định.
@@ -141,4 +198,7 @@ TOKENIZER = TokenizerConfig()
 DATA = DataConfig()
 MODEL = ModelConfig()
 TRAIN = TrainConfig()
+EVAL = EvalConfig()
+SINH_EVAL = SinhEvalConfig()
+RELEASE = ReleaseConfig()
 SINH = SinhConfig()

@@ -208,3 +208,28 @@ def test_lui_ve_ban_truoc_khi_ban_moi_nhat_hong(manager: CheckpointManager, caps
     assert state.step == 200
     assert payload["model"] == "w200"
     assert "lùi về bản trước" in capsys.readouterr().out
+
+
+def test_rng_state_khoi_phuc_dung_chuoi_ngau_nhien() -> None:
+    """Resume phải tiếp đúng RNG, không chỉ đúng model/optimizer/data position."""
+    import random
+
+    import numpy as np
+
+    torch = pytest.importorskip("torch", reason="cần torch")
+    from luna_zero.checkpoint import khoi_phuc_rng_state, lay_rng_state
+
+    random.seed(7)
+    np.random.seed(7)
+    torch.manual_seed(7)
+    state = lay_rng_state("cpu")
+    mong_doi = (random.random(), float(np.random.rand()), float(torch.rand(())))
+
+    for _ in range(5):
+        random.random()
+        np.random.rand()
+        torch.rand(())
+
+    khoi_phuc_rng_state(state, "cpu")
+    thuc_te = (random.random(), float(np.random.rand()), float(torch.rand(())))
+    assert thuc_te == pytest.approx(mong_doi)

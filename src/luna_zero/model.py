@@ -205,6 +205,17 @@ class LunaZeroGPT(nn.Module):
         """
         from luna_zero.config import EOS_ID
 
+        if max_new_tokens < 0:
+            raise ValueError("max_new_tokens phải >= 0")
+        if temperature <= 0:
+            raise ValueError("temperature phải > 0")
+        if top_k is not None and top_k < 1:
+            raise ValueError("top_k phải >= 1")
+        if top_p is not None and not 0.0 < top_p <= 1.0:
+            raise ValueError("top_p phải nằm trong (0, 1]")
+        if phat_lap < 1.0:
+            raise ValueError("phat_lap phải >= 1")
+
         self.eval()
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.cfg.block_size :]
